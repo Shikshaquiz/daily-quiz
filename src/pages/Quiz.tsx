@@ -167,20 +167,20 @@ const Quiz = () => {
         </div>
 
         {/* Question Card */}
-        <Card className="p-8 mb-6 shadow-lg">
+        <Card className="p-4 md:p-8 mb-6 shadow-lg">
           <div className="mb-4">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+            <div className="flex items-center gap-2 mb-3 md:mb-4">
+              <span className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs md:text-sm font-medium">
                 कक्षा {classNumber}
               </span>
-              <span className="px-3 py-1 bg-accent/10 text-accent rounded-full text-sm font-medium">
+              <span className="px-2 py-1 bg-accent/10 text-accent rounded-full text-xs md:text-sm font-medium">
                 {question.subject}
               </span>
             </div>
-            <h2 className="text-2xl font-bold mb-6">{question.question}</h2>
+            <h2 className="text-base md:text-2xl font-bold mb-4 md:mb-6">{question.question}</h2>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             {question.options.map((option, index) => {
               const isSelected = selectedAnswer === option;
               const isCorrect = option === question.correctAnswer;
@@ -192,7 +192,7 @@ const Quiz = () => {
                   key={index}
                   onClick={() => !showResult && setSelectedAnswer(option)}
                   disabled={showResult}
-                  className={`w-full p-4 rounded-lg text-left transition-all border-2 ${
+                  className={`w-full p-3 md:p-4 rounded-lg text-left transition-all border-2 ${
                     showCorrect
                       ? "bg-success/10 border-success"
                       : showWrong
@@ -203,9 +203,9 @@ const Quiz = () => {
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">{option}</span>
-                    {showCorrect && <CheckCircle className="w-5 h-5 text-success" />}
-                    {showWrong && <XCircle className="w-5 h-5 text-destructive" />}
+                    <span className="text-sm md:text-base font-medium">{option}</span>
+                    {showCorrect && <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-success" />}
+                    {showWrong && <XCircle className="w-4 h-4 md:w-5 md:h-5 text-destructive" />}
                   </div>
                 </button>
               );
@@ -213,9 +213,9 @@ const Quiz = () => {
           </div>
 
           {showResult && (
-            <div className="mt-6 p-4 bg-muted rounded-lg">
-              <p className="font-medium mb-2">व्याख्या:</p>
-              <p className="text-muted-foreground">{question.explanation}</p>
+            <div className="mt-4 md:mt-6 p-3 md:p-4 bg-muted rounded-lg">
+              <p className="text-sm md:text-base font-medium mb-2">व्याख्या:</p>
+              <p className="text-xs md:text-sm text-muted-foreground">{question.explanation}</p>
             </div>
           )}
         </Card>
