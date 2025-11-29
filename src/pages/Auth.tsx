@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, Loader2 } from "lucide-react";
 
 const Auth = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -49,13 +49,19 @@ const Auth = () => {
         return;
       }
 
-      const fullPhone = `+91${cleanPhone}`;
-      
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: fullPhone,
+      // Call edge function to send OTP via Fast2SMS
+      const { data, error } = await supabase.functions.invoke('send-otp', {
+        body: { phone: cleanPhone }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error sending OTP:", error);
+        throw new Error(error.message || "OTP भेजने में समस्या आई");
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
       setOtpSent(true);
       toast({
@@ -80,20 +86,35 @@ const Auth = () => {
 
     try {
       const cleanPhone = phoneNumber.replace(/\D/g, "");
-      const fullPhone = `+91${cleanPhone}`;
 
-      const { error } = await supabase.auth.verifyOtp({
-        phone: fullPhone,
-        token: otp,
-        type: 'sms',
+      // Call edge function to verify OTP
+      const { data, error } = await supabase.functions.invoke('verify-otp', {
+        body: { phone: cleanPhone, otp: otp }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error verifying OTP:", error);
+        throw new Error(error.message || "OTP सत्यापन में समस्या आई");
+      }
 
-      toast({
-        title: "सफल लॉगिन",
-        description: "आपका स्वागत है!",
-      });
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (data?.session) {
+        // Set the session in the client
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        });
+
+        toast({
+          title: "सफल लॉगिन",
+          description: "आपका स्वागत है!",
+        });
+      } else {
+        throw new Error("Session not received");
+      }
     } catch (error: any) {
       console.error("Error verifying OTP:", error);
       toast({
@@ -142,7 +163,14 @@ const Auth = () => {
               className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
               disabled={loading}
             >
-              {loading ? "भेजा जा रहा है..." : "OTP भेजें"}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  भेजा जा रहा है...
+                </>
+              ) : (
+                "OTP भेजें"
+              )}
             </Button>
           </form>
         ) : (
@@ -166,7 +194,14 @@ const Auth = () => {
               className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
               disabled={loading}
             >
-              {loading ? "सत्यापित किया जा रहा है..." : "OTP सत्यापित करें"}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  सत्यापित किया जा रहा है...
+                </>
+              ) : (
+                "OTP सत्यापित करें"
+              )}
             </Button>
             <Button
               type="button"
