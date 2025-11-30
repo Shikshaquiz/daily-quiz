@@ -13,7 +13,9 @@ serve(async (req) => {
   }
 
   try {
-    const { phone, otp } = await req.json();
+    const { phone, otp, isSignup, username, email, password } = await req.json();
+    
+    console.log('Verify OTP request - phone:', phone, 'isSignup:', isSignup);
     
     if (!phone || !otp) {
       return new Response(
@@ -67,104 +69,95 @@ serve(async (req) => {
     let session;
     let user;
 
+    // Determine email and password to use
+    const userEmail = isSignup && email ? email : `${phone}@phone.local`;
+    const tempPassword = isSignup && password 
+      ? password 
+      : phone + '_secure_password_' + supabaseServiceKey?.slice(-8);
+
     if (existingUser) {
-      // User exists - create session
+      // User exists - sign in
       console.log('Existing user found:', existingUser.id);
       
-      // Generate magic link for existing user
-      const { data: signInData, error: signInError } = await supabase.auth.admin.generateLink({
-        type: 'magiclink',
-        email: `${phone}@phone.local`,
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: existingUser.email || `${phone}@phone.local`,
+        password: tempPassword,
       });
 
       if (signInError) {
-        console.error('Error generating magic link:', signInError);
-        // Try alternative approach - update user and sign in
-        const { data: tokenData, error: tokenError } = await supabase.auth.admin.generateLink({
-          type: 'recovery',
-          email: `${phone}@phone.local`,
-        });
-        
-        if (tokenError) {
-          console.error('Error with recovery link:', tokenError);
-        }
+        console.error('Sign in error:', signInError);
+        // User exists but password doesn't match - this is for existing users
+        return new Response(
+          JSON.stringify({ error: 'यह नंबर पहले से पंजीकृत है। कृपया सही पासवर्ड का उपयोग करें।' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
-      // Create session directly
-      const { data: sessionData, error: sessionError } = await supabase.auth.signInWithPassword({
-        email: `${phone}@phone.local`,
-        password: phone + '_secure_password_' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')?.slice(-8),
-      });
-
-      if (sessionError) {
-        console.error('Session error for existing user:', sessionError);
-      } else {
-        session = sessionData.session;
-        user = sessionData.user;
-      }
-    }
-
-    if (!session) {
-      // Create new user with phone as email (for OTP-based auth)
-      const tempPassword = phone + '_secure_password_' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')?.slice(-8);
+      session = signInData.session;
+      user = signInData.user;
+    } else {
+      // Create new user
+      console.log('Creating new user with email:', userEmail);
       
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email: `${phone}@phone.local`,
+        email: userEmail,
         phone: `+91${phone}`,
         password: tempPassword,
         email_confirm: true,
         phone_confirm: true,
         user_metadata: {
-          phone_number: phone
+          phone_number: phone,
+          username: username || '',
+          full_name: username || ''
         }
       });
 
       if (createError) {
-        // User might already exist with this email
-        if (createError.message.includes('already been registered')) {
-          // Try to sign in
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email: `${phone}@phone.local`,
-            password: tempPassword,
-          });
-
-          if (signInError) {
-            console.error('Sign in error:', signInError);
-            return new Response(
-              JSON.stringify({ error: 'लॉगिन में समस्या आई' }),
-              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
-
-          session = signInData.session;
-          user = signInData.user;
-        } else {
-          console.error('Error creating user:', createError);
-          return new Response(
-            JSON.stringify({ error: 'उपयोगकर्ता बनाने में समस्या आई' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-      } else {
-        user = newUser.user;
+        console.error('Error creating user:', createError);
         
-        // Sign in the new user
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: `${phone}@phone.local`,
-          password: tempPassword,
-        });
-
-        if (signInError) {
-          console.error('Sign in error for new user:', signInError);
+        if (createError.message.includes('already been registered')) {
           return new Response(
-            JSON.stringify({ error: 'लॉगिन में समस्या आई' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({ error: 'यह ईमेल पहले से पंजीकृत है' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-
-        session = signInData.session;
-        user = signInData.user;
+        
+        return new Response(
+          JSON.stringify({ error: 'उपयोगकर्ता बनाने में समस्या आई' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
+
+      user = newUser.user;
+      
+      // Update profile with additional info
+      if (user && (username || email)) {
+        await supabase
+          .from('profiles')
+          .update({ 
+            full_name: username || null,
+            email: email || null,
+            username: username || null
+          })
+          .eq('id', user.id);
+      }
+
+      // Sign in the new user
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: userEmail,
+        password: tempPassword,
+      });
+
+      if (signInError) {
+        console.error('Sign in error for new user:', signInError);
+        return new Response(
+          JSON.stringify({ error: 'लॉगिन में समस्या आई' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      session = signInData.session;
+      user = signInData.user;
     }
 
     // Delete used OTP
