@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { GraduationCap, LogOut, Trophy } from "lucide-react";
+import { GraduationCap, LogOut, Trophy, Gamepad2 } from "lucide-react";
 
 const Classes = () => {
   const [loading, setLoading] = useState(true);
@@ -64,62 +64,112 @@ const Classes = () => {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8 p-4 bg-card rounded-lg shadow-md">
+        <div className="flex items-center justify-between mb-6 p-4 bg-card rounded-lg shadow-md">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-primary rounded-full flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-primary rounded-full flex items-center justify-center">
+              <GraduationCap className="w-5 h-5 md:w-6 md:h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">शिक्षा क्विज़</h1>
-              <p className="text-muted-foreground text-sm">कक्षा चुनें</p>
+              <h1 className="text-lg md:text-2xl font-bold">शिक्षा क्विज़</h1>
+              <p className="text-muted-foreground text-xs md:text-sm">कक्षा चुनें</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-gradient-secondary px-4 py-2 rounded-lg">
-              <Trophy className="w-5 h-5 text-secondary-foreground" />
-              <span className="font-bold text-secondary-foreground">{credits}</span>
-              <span className="text-xs text-secondary-foreground">क्रेडिट</span>
+          <div className="flex items-center gap-2 md:gap-4">
+            <div className="flex items-center gap-1 md:gap-2 bg-gradient-secondary px-2 md:px-4 py-1.5 md:py-2 rounded-lg">
+              <Trophy className="w-4 h-4 md:w-5 md:h-5 text-secondary-foreground" />
+              <span className="font-bold text-sm md:text-base text-secondary-foreground">{credits}</span>
+              <span className="text-xs text-secondary-foreground hidden md:inline">क्रेडिट</span>
             </div>
-            <Button variant="outline" size="icon" onClick={handleLogout}>
+            <Button variant="outline" size="icon" onClick={handleLogout} className="h-8 w-8 md:h-10 md:w-10">
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
-        {/* Class Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((classNum) => (
-            <Card
-              key={classNum}
-              className="p-6 hover:shadow-lg transition-all cursor-pointer group hover:scale-105 border-2"
-              onClick={() => handleClassSelect(classNum)}
-            >
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <span className="text-2xl font-bold text-white">{classNum}</span>
+        {/* Kids Play Section */}
+        <Card 
+          className="p-4 md:p-6 mb-6 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white cursor-pointer hover:scale-[1.02] transition-all"
+          onClick={() => navigate("/kids-play")}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 md:w-20 md:h-20 bg-white/20 rounded-full flex items-center justify-center">
+              <Gamepad2 className="w-7 h-7 md:w-10 md:h-10 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl md:text-2xl font-bold">🎮 Kids Play</h2>
+              <p className="text-sm md:text-base opacity-90">अ से अनार, A से Apple, गिनती सीखें!</p>
+              <p className="text-xs opacity-75 mt-1">हिंदी वर्णमाला • English ABC • Numbers 1-10</p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Primary Classes (1-5) */}
+        <div className="mb-6">
+          <h2 className="text-lg md:text-xl font-bold mb-3 flex items-center gap-2">
+            <span className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-primary">📚</span>
+            प्राथमिक कक्षा (1-5)
+          </h2>
+          <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+            {[1, 2, 3, 4, 5].map((classNum) => (
+              <Card
+                key={classNum}
+                className="p-4 md:p-6 hover:shadow-lg transition-all cursor-pointer group hover:scale-105 border-2 hover:border-primary"
+                onClick={() => handleClassSelect(classNum)}
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-primary rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-xl md:text-2xl font-bold text-white">{classNum}</span>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-semibold text-sm md:text-base">कक्षा {classNum}</p>
+                    <p className="text-xs text-muted-foreground hidden md:block">क्विज़ शुरू करें</p>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <p className="font-semibold">कक्षा {classNum}</p>
-                  <p className="text-xs text-muted-foreground">क्विज़ शुरू करें</p>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Secondary Classes (6-10) */}
+        <div className="mb-6">
+          <h2 className="text-lg md:text-xl font-bold mb-3 flex items-center gap-2">
+            <span className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center text-accent">🎓</span>
+            माध्यमिक कक्षा (6-10)
+          </h2>
+          <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+            {[6, 7, 8, 9, 10].map((classNum) => (
+              <Card
+                key={classNum}
+                className="p-4 md:p-6 hover:shadow-lg transition-all cursor-pointer group hover:scale-105 border-2 hover:border-accent"
+                onClick={() => handleClassSelect(classNum)}
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-accent to-purple-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-xl md:text-2xl font-bold text-white">{classNum}</span>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-semibold text-sm md:text-base">कक्षा {classNum}</p>
+                    <p className="text-xs text-muted-foreground hidden md:block">क्विज़ शुरू करें</p>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            ))}
+          </div>
         </div>
 
         {/* Info Cards */}
-        <div className="grid md:grid-cols-3 gap-4 mt-8">
-          <Card className="p-6 bg-gradient-success text-white">
-            <h3 className="font-bold text-lg mb-2">सही उत्तर</h3>
-            <p className="text-sm opacity-90">+10 क्रेडिट मिलेंगे</p>
+        <div className="grid grid-cols-3 gap-2 md:gap-4">
+          <Card className="p-3 md:p-6 bg-gradient-success text-white">
+            <h3 className="font-bold text-sm md:text-lg mb-1">✅ सही</h3>
+            <p className="text-xs md:text-sm opacity-90">+10 क्रेडिट</p>
           </Card>
-          <Card className="p-6 bg-gradient-to-br from-destructive to-red-600 text-white">
-            <h3 className="font-bold text-lg mb-2">गलत उत्तर</h3>
-            <p className="text-sm opacity-90">-10 क्रेडिट कटेंगे</p>
+          <Card className="p-3 md:p-6 bg-gradient-to-br from-destructive to-red-600 text-white">
+            <h3 className="font-bold text-sm md:text-lg mb-1">❌ गलत</h3>
+            <p className="text-xs md:text-sm opacity-90">-10 क्रेडिट</p>
           </Card>
-          <Card className="p-6 bg-gradient-primary text-white">
-            <h3 className="font-bold text-lg mb-2">सभी विषय</h3>
-            <p className="text-sm opacity-90">हर बार नया प्रश्न</p>
+          <Card className="p-3 md:p-6 bg-gradient-primary text-white">
+            <h3 className="font-bold text-sm md:text-lg mb-1">📖 विषय</h3>
+            <p className="text-xs md:text-sm opacity-90">सभी विषय</p>
           </Card>
         </div>
       </div>
