@@ -12,19 +12,80 @@ serve(async (req) => {
   }
 
   try {
-    const { classNumber } = await req.json();
+    const { classNumber, examType } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    console.log(`Generating quiz for class ${classNumber}`);
+    let systemPrompt = '';
+    let userMessage = '';
 
-    const subjects = ['गणित', 'विज्ञान', 'सामाजिक विज्ञान', 'हिंदी', 'अंग्रेज़ी'];
-    const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+    if (examType) {
+      // Competitive Exam Questions
+      const examDetails: Record<string, { name: string; subjects: string[]; level: string }> = {
+        navodaya: {
+          name: "जवाहर नवोदय विद्यालय (JNVST)",
+          subjects: ['मानसिक योग्यता', 'अंकगणित', 'भाषा परीक्षण', 'सामान्य ज्ञान'],
+          level: "कक्षा 5-6 स्तर"
+        },
+        netarhat: {
+          name: "नेतरहाट आवासीय विद्यालय",
+          subjects: ['गणित', 'विज्ञान', 'सामान्य ज्ञान', 'तर्कशक्ति', 'अंग्रेज़ी'],
+          level: "कक्षा 6 स्तर"
+        },
+        sainik: {
+          name: "सैनिक स्कूल प्रवेश परीक्षा (AISSEE)",
+          subjects: ['गणित', 'सामान्य ज्ञान', 'भाषा', 'बुद्धि परीक्षण'],
+          level: "कक्षा 6/9 स्तर"
+        },
+        upsc: {
+          name: "UPSC प्रारंभिक परीक्षा",
+          subjects: ['भारतीय इतिहास', 'भूगोल', 'राजव्यवस्था', 'अर्थव्यवस्था', 'विज्ञान', 'पर्यावरण', 'करंट अफेयर्स'],
+          level: "स्नातक स्तर"
+        },
+        bpsc: {
+          name: "BPSC प्रारंभिक परीक्षा",
+          subjects: ['बिहार का इतिहास', 'भारतीय इतिहास', 'भूगोल', 'राजव्यवस्था', 'अर्थव्यवस्था', 'सामान्य विज्ञान', 'करंट अफेयर्स'],
+          level: "स्नातक स्तर"
+        }
+      };
 
-    const systemPrompt = `आप एक शैक्षिक सहायक हैं जो कक्षा ${classNumber} के लिए ${randomSubject} विषय पर बहुविकल्पीय प्रश्न (MCQ) बनाते हैं। 
+      const exam = examDetails[examType] || examDetails.navodaya;
+      const randomSubject = exam.subjects[Math.floor(Math.random() * exam.subjects.length)];
+
+      console.log(`Generating ${exam.name} quiz for subject: ${randomSubject}`);
+
+      systemPrompt = `आप एक शैक्षिक सहायक हैं जो ${exam.name} परीक्षा के लिए ${randomSubject} विषय पर बहुविकल्पीय प्रश्न (MCQ) बनाते हैं।
+
+यह परीक्षा ${exam.level} की है।
+
+आपको JSON format में एक MCQ प्रश्न return करना है:
+{
+  "question": "प्रश्न यहाँ लिखें",
+  "options": ["विकल्प A", "विकल्प B", "विकल्प C", "विकल्प D"],
+  "correctAnswer": "सही विकल्प यहाँ",
+  "subject": "${randomSubject}",
+  "explanation": "उत्तर की संक्षिप्त व्याख्या"
+}
+
+प्रश्न:
+- ${exam.name} परीक्षा के पैटर्न के अनुसार होना चाहिए
+- ${exam.level} के अनुरूप कठिनाई स्तर होना चाहिए
+- हिंदी में होना चाहिए
+- शैक्षिक और परीक्षा-उपयोगी होना चाहिए`;
+
+      userMessage = `${exam.name} परीक्षा के लिए ${randomSubject} विषय पर एक नया MCQ प्रश्न बनाएं।`;
+
+    } else if (classNumber) {
+      // Class-based Questions
+      const subjects = ['गणित', 'विज्ञान', 'सामाजिक विज्ञान', 'हिंदी', 'अंग्रेज़ी'];
+      const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+
+      console.log(`Generating quiz for class ${classNumber}, subject: ${randomSubject}`);
+
+      systemPrompt = `आप एक शैक्षिक सहायक हैं जो कक्षा ${classNumber} के लिए ${randomSubject} विषय पर बहुविकल्पीय प्रश्न (MCQ) बनाते हैं। 
     
 प्रश्न NCERT पाठ्यक्रम के अनुसार होना चाहिए और छात्र की कक्षा ${classNumber} के स्तर के अनुरूप होना चाहिए।
 
@@ -39,6 +100,11 @@ serve(async (req) => {
 
 प्रश्न हिंदी में होना चाहिए और छात्रों के लिए शैक्षिक और रोचक होना चाहिए।`;
 
+      userMessage = `कक्षा ${classNumber} के लिए ${randomSubject} विषय पर एक नया MCQ प्रश्न बनाएं।`;
+    } else {
+      throw new Error('Either classNumber or examType is required');
+    }
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -49,7 +115,7 @@ serve(async (req) => {
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `कक्षा ${classNumber} के लिए ${randomSubject} विषय पर एक नया MCQ प्रश्न बनाएं।` }
+          { role: 'user', content: userMessage }
         ],
         temperature: 0.8,
       }),
@@ -58,6 +124,20 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('AI Gateway error:', response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Payment required. Please add credits." }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
       throw new Error(`AI Gateway error: ${response.status}`);
     }
 
