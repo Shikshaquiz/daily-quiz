@@ -80,23 +80,65 @@ const englishAlphabet = [
   { letter: "Z", word: "Zebra", emoji: "🦓" },
 ];
 
-// Numbers Data
-const numbers = [
-  { number: "1", word: "एक / One", emoji: "1️⃣", items: "🍎" },
-  { number: "2", word: "दो / Two", emoji: "2️⃣", items: "🍎🍎" },
-  { number: "3", word: "तीन / Three", emoji: "3️⃣", items: "🍎🍎🍎" },
-  { number: "4", word: "चार / Four", emoji: "4️⃣", items: "🍎🍎🍎🍎" },
-  { number: "5", word: "पांच / Five", emoji: "5️⃣", items: "🍎🍎🍎🍎🍎" },
-  { number: "6", word: "छह / Six", emoji: "6️⃣", items: "⭐⭐⭐⭐⭐⭐" },
-  { number: "7", word: "सात / Seven", emoji: "7️⃣", items: "⭐⭐⭐⭐⭐⭐⭐" },
-  { number: "8", word: "आठ / Eight", emoji: "8️⃣", items: "🌟🌟🌟🌟🌟🌟🌟🌟" },
-  { number: "9", word: "नौ / Nine", emoji: "9️⃣", items: "🌟🌟🌟🌟🌟🌟🌟🌟🌟" },
-  { number: "10", word: "दस / Ten", emoji: "🔟", items: "🎈🎈🎈🎈🎈🎈🎈🎈🎈🎈" },
-];
+// Numbers Data 1-100
+const generateNumbers = () => {
+  const hindiNumbers = [
+    "शून्य", "एक", "दो", "तीन", "चार", "पांच", "छह", "सात", "आठ", "नौ", "दस",
+    "ग्यारह", "बारह", "तेरह", "चौदह", "पंद्रह", "सोलह", "सत्रह", "अठारह", "उन्नीस", "बीस",
+    "इक्कीस", "बाईस", "तेईस", "चौबीस", "पच्चीस", "छब्बीस", "सत्ताईस", "अट्ठाईस", "उनतीस", "तीस",
+    "इकतीस", "बत्तीस", "तैंतीस", "चौंतीस", "पैंतीस", "छत्तीस", "सैंतीस", "अड़तीस", "उनतालीस", "चालीस",
+    "इकतालीस", "बयालीस", "तैंतालीस", "चवालीस", "पैंतालीस", "छियालीस", "सैंतालीस", "अड़तालीस", "उनचास", "पचास",
+    "इक्यावन", "बावन", "तिरपन", "चौवन", "पचपन", "छप्पन", "सत्तावन", "अट्ठावन", "उनसठ", "साठ",
+    "इकसठ", "बासठ", "तिरसठ", "चौंसठ", "पैंसठ", "छियासठ", "सड़सठ", "अड़सठ", "उनहत्तर", "सत्तर",
+    "इकहत्तर", "बहत्तर", "तिहत्तर", "चौहत्तर", "पचहत्तर", "छिहत्तर", "सतहत्तर", "अठहत्तर", "उनासी", "अस्सी",
+    "इक्यासी", "बयासी", "तिरासी", "चौरासी", "पचासी", "छियासी", "सतासी", "अठासी", "नवासी", "नब्बे",
+    "इक्यानबे", "बानबे", "तिरानबे", "चौरानबे", "पचानबे", "छियानबे", "सतानबे", "अठानबे", "निन्यानबे", "सौ"
+  ];
+  
+  return Array.from({ length: 100 }, (_, i) => ({
+    number: String(i + 1),
+    word: `${hindiNumbers[i + 1]} / ${i + 1}`,
+    emoji: i < 10 ? `${i + 1}️⃣` : "🔢",
+  }));
+};
+
+const numbers = generateNumbers();
+
+// Pahada (Multiplication Tables) 1-20
+const generatePahada = () => {
+  return Array.from({ length: 20 }, (_, i) => ({
+    table: i + 1,
+    name: `${i + 1} का पहाड़ा`,
+  }));
+};
+
+const pahadas = generatePahada();
+
+// Addition examples
+const generateAdditions = () => {
+  const additions = [];
+  for (let i = 1; i <= 20; i++) {
+    for (let j = 1; j <= 10; j++) {
+      if (additions.length < 50) {
+        additions.push({
+          num1: i,
+          num2: j,
+          result: i + j,
+          display: `${i} + ${j} = ${i + j}`,
+        });
+      }
+    }
+  }
+  return additions;
+};
+
+const additions = generateAdditions();
 
 const KidsPlay = () => {
   const navigate = useNavigate();
   const [selectedCard, setSelectedCard] = useState<any>(null);
+  const [selectedPahada, setSelectedPahada] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState("hindi");
 
   const speakText = (text: string, lang: string = "hi-IN") => {
     if ('speechSynthesis' in window) {
@@ -127,16 +169,65 @@ const KidsPlay = () => {
   const renderNumberCard = (item: any) => (
     <Card
       key={item.number}
-      className="p-4 cursor-pointer hover:scale-105 transition-all hover:shadow-lg border-2 hover:border-primary"
+      className="p-3 cursor-pointer hover:scale-105 transition-all hover:shadow-lg border-2 hover:border-primary"
       onClick={() => {
-        setSelectedCard(item);
-        speakText(`${item.number}, ${item.word}`, "hi-IN");
+        setSelectedCard({ ...item, type: 'number' });
+        speakText(`${item.number}, ${item.word.split(' / ')[0]}`, "hi-IN");
       }}
     >
       <div className="text-center">
-        <div className="text-4xl md:text-5xl font-bold text-primary mb-2">{item.number}</div>
-        <div className="text-lg md:text-xl mb-1">{item.items}</div>
-        <div className="text-xs md:text-sm text-muted-foreground">{item.word}</div>
+        <div className="text-2xl md:text-3xl font-bold text-primary mb-1">{item.number}</div>
+        <div className="text-xs md:text-sm text-muted-foreground truncate">{item.word}</div>
+      </div>
+    </Card>
+  );
+
+  const renderPahadaCard = (item: any) => (
+    <Card
+      key={item.table}
+      className={`p-4 cursor-pointer hover:scale-105 transition-all hover:shadow-lg border-2 ${selectedPahada === item.table ? 'border-primary bg-primary/10' : 'hover:border-primary'}`}
+      onClick={() => {
+        setSelectedPahada(item.table);
+        setSelectedCard({ type: 'pahada', table: item.table });
+      }}
+    >
+      <div className="text-center">
+        <div className="text-3xl md:text-4xl font-bold text-primary mb-1">{item.table}</div>
+        <div className="text-xs md:text-sm text-muted-foreground">{item.name}</div>
+      </div>
+    </Card>
+  );
+
+  const renderPahadaTable = (tableNum: number) => {
+    return (
+      <Card className="p-4 bg-gradient-to-br from-primary/10 to-accent/10">
+        <h3 className="text-xl font-bold text-center mb-4 text-primary">{tableNum} का पहाड़ा</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {Array.from({ length: 10 }, (_, i) => (
+            <div
+              key={i}
+              className="p-2 bg-card rounded-lg text-center cursor-pointer hover:bg-primary/20 transition-colors"
+              onClick={() => speakText(`${tableNum} एकम ${tableNum * (i + 1)}`, "hi-IN")}
+            >
+              <span className="font-semibold">{tableNum} × {i + 1} = {tableNum * (i + 1)}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+    );
+  };
+
+  const renderAdditionCard = (item: any) => (
+    <Card
+      key={`${item.num1}-${item.num2}`}
+      className="p-3 cursor-pointer hover:scale-105 transition-all hover:shadow-lg border-2 hover:border-accent"
+      onClick={() => {
+        setSelectedCard({ type: 'addition', ...item });
+        speakText(`${item.num1} जमा ${item.num2} बराबर ${item.result}`, "hi-IN");
+      }}
+    >
+      <div className="text-center">
+        <div className="text-lg md:text-xl font-bold text-accent">{item.display}</div>
       </div>
     </Card>
   );
@@ -156,20 +247,26 @@ const KidsPlay = () => {
         </div>
 
         {/* Selected Card Preview */}
-        {selectedCard && (
+        {selectedCard && selectedCard.type !== 'pahada' && (
           <Card className="p-6 mb-6 bg-gradient-primary text-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="text-5xl md:text-6xl">{selectedCard.emoji || selectedCard.items}</div>
+                <div className="text-5xl md:text-6xl">{selectedCard.emoji || "🔢"}</div>
                 <div>
-                  <div className="text-3xl md:text-4xl font-bold">{selectedCard.letter || selectedCard.number}</div>
+                  <div className="text-3xl md:text-4xl font-bold">{selectedCard.letter || selectedCard.number || selectedCard.display}</div>
                   <div className="text-lg md:text-xl opacity-90">{selectedCard.word}</div>
                 </div>
               </div>
               <Button
                 variant="secondary"
                 size="icon"
-                onClick={() => speakText(selectedCard.word, selectedCard.letter?.match(/[A-Z]/) ? "en-US" : "hi-IN")}
+                onClick={() => {
+                  if (selectedCard.type === 'addition') {
+                    speakText(`${selectedCard.num1} जमा ${selectedCard.num2} बराबर ${selectedCard.result}`, "hi-IN");
+                  } else {
+                    speakText(selectedCard.word || selectedCard.number, selectedCard.letter?.match(/[A-Z]/) ? "en-US" : "hi-IN");
+                  }
+                }}
               >
                 <Volume2 className="h-5 w-5" />
               </Button>
@@ -178,11 +275,13 @@ const KidsPlay = () => {
         )}
 
         {/* Tabs for different content */}
-        <Tabs defaultValue="hindi" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="hindi">हिंदी वर्णमाला</TabsTrigger>
-            <TabsTrigger value="english">English ABC</TabsTrigger>
-            <TabsTrigger value="numbers">गिनती 1-10</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
+            <TabsTrigger value="hindi" className="text-xs md:text-sm">हिंदी</TabsTrigger>
+            <TabsTrigger value="english" className="text-xs md:text-sm">ABC</TabsTrigger>
+            <TabsTrigger value="numbers" className="text-xs md:text-sm">गिनती</TabsTrigger>
+            <TabsTrigger value="pahada" className="text-xs md:text-sm">पहाड़ा</TabsTrigger>
+            <TabsTrigger value="jod" className="text-xs md:text-sm">जोड़</TabsTrigger>
           </TabsList>
 
           <TabsContent value="hindi">
@@ -198,8 +297,30 @@ const KidsPlay = () => {
           </TabsContent>
 
           <TabsContent value="numbers">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            <p className="text-center text-muted-foreground mb-4">1 से 100 तक गिनती सीखें</p>
+            <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2">
               {numbers.map((item) => renderNumberCard(item))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="pahada">
+            <p className="text-center text-muted-foreground mb-4">1 से 20 तक पहाड़ा सीखें</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                {pahadas.map((item) => renderPahadaCard(item))}
+              </div>
+              {selectedPahada && (
+                <div>
+                  {renderPahadaTable(selectedPahada)}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="jod">
+            <p className="text-center text-muted-foreground mb-4">जोड़ना सीखें</p>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+              {additions.map((item) => renderAdditionCard(item))}
             </div>
           </TabsContent>
         </Tabs>
