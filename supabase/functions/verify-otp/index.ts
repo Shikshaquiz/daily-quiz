@@ -15,7 +15,7 @@ serve(async (req) => {
   try {
     const { phone, otp, isSignup, username, email, password } = await req.json();
     
-    console.log('Verify OTP request - phone:', phone, 'isSignup:', isSignup);
+    console.log('Verify OTP request - phone:', phone, 'isSignup:', isSignup, 'email:', email);
     
     if (!phone || !otp) {
       return new Response(
@@ -60,49 +60,65 @@ serve(async (req) => {
       .update({ verified: true })
       .eq('id', otpRecord.id);
 
-    // Check if user exists
+    // Check if user exists by phone (try multiple formats)
     const { data: existingUsers } = await supabase.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find(
-      (u) => u.phone === `+91${phone}`
+    const phoneFormats = [`+91${phone}`, phone, `91${phone}`];
+    
+    let existingUserByPhone = existingUsers?.users?.find(
+      (u) => u.phone && phoneFormats.includes(u.phone)
     );
+    
+    // Also check by email if provided
+    let existingUserByEmail = null;
+    if (email) {
+      existingUserByEmail = existingUsers?.users?.find(
+        (u) => u.email === email
+      );
+    }
+    
+    // Also check for phone.local email
+    const phoneLocalEmail = `${phone}@phone.local`;
+    const existingUserByPhoneEmail = existingUsers?.users?.find(
+      (u) => u.email === phoneLocalEmail
+    );
+
+    console.log('Existing user by phone:', existingUserByPhone?.id);
+    console.log('Existing user by email:', existingUserByEmail?.id);
+    console.log('Existing user by phone.local:', existingUserByPhoneEmail?.id);
 
     let session;
     let user;
 
-    // Determine email and password to use
-    const userEmail = isSignup && email ? email : `${phone}@phone.local`;
-    const tempPassword = isSignup && password 
-      ? password 
-      : phone + '_secure_password_' + supabaseServiceKey?.slice(-8);
+    // Use the provided password for signup, or generate default for signin
+    const defaultPassword = phone + '_secure_password_' + supabaseServiceKey?.slice(-8);
 
-    if (existingUser) {
-      // User exists - sign in
-      console.log('Existing user found:', existingUser.id);
-      
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: existingUser.email || `${phone}@phone.local`,
-        password: tempPassword,
-      });
-
-      if (signInError) {
-        console.error('Sign in error:', signInError);
-        // User exists but password doesn't match - this is for existing users
+    if (isSignup) {
+      // SIGNUP FLOW
+      // Check if user already exists
+      if (existingUserByPhone || existingUserByPhoneEmail) {
         return new Response(
-          JSON.stringify({ error: 'यह नंबर पहले से पंजीकृत है। कृपया सही पासवर्ड का उपयोग करें।' }),
+          JSON.stringify({ error: 'यह फोन नंबर पहले से पंजीकृत है। कृपया साइन इन करें।' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      if (existingUserByEmail) {
+        return new Response(
+          JSON.stringify({ error: 'यह ईमेल पहले से पंजीकृत है। कृपया दूसरी ईमेल का उपयोग करें।' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      session = signInData.session;
-      user = signInData.user;
-    } else {
       // Create new user
+      const userEmail = email || phoneLocalEmail;
+      const userPassword = password || defaultPassword;
+      
       console.log('Creating new user with email:', userEmail);
       
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email: userEmail,
         phone: `+91${phone}`,
-        password: tempPassword,
+        password: userPassword,
         email_confirm: true,
         phone_confirm: true,
         user_metadata: {
@@ -115,7 +131,6 @@ serve(async (req) => {
       if (createError) {
         console.error('Error creating user:', createError);
         
-        // Check for phone_exists error
         if (createError.message.includes('Phone number already registered') || 
             (createError as any).code === 'phone_exists') {
           return new Response(
@@ -127,7 +142,7 @@ serve(async (req) => {
         if (createError.message.includes('already been registered') ||
             (createError as any).code === 'email_exists') {
           return new Response(
-            JSON.stringify({ error: 'यह ईमेल पहले से पंजीकृत है' }),
+            JSON.stringify({ error: 'यह ईमेल पहले से पंजीकृत है। कृपया दूसरी ईमेल का उपयोग करें।' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -155,7 +170,7 @@ serve(async (req) => {
       // Sign in the new user
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: userEmail,
-        password: tempPassword,
+        password: userPassword,
       });
 
       if (signInError) {
@@ -168,6 +183,55 @@ serve(async (req) => {
 
       session = signInData.session;
       user = signInData.user;
+      
+    } else {
+      // SIGN IN FLOW
+      const existingUser = existingUserByPhone || existingUserByPhoneEmail;
+      
+      if (!existingUser) {
+        return new Response(
+          JSON.stringify({ error: 'यह फोन नंबर पंजीकृत नहीं है। कृपया पहले साइन अप करें।' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('Signing in existing user:', existingUser.id);
+      
+      // For sign-in, try with the default password first
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: existingUser.email || phoneLocalEmail,
+        password: password || defaultPassword,
+      });
+
+      if (signInError) {
+        console.error('Sign in error:', signInError);
+        
+        // If password is provided and failed, try with default password
+        if (password) {
+          const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
+            email: existingUser.email || phoneLocalEmail,
+            password: defaultPassword,
+          });
+          
+          if (retryError) {
+            return new Response(
+              JSON.stringify({ error: 'गलत पासवर्ड। कृपया सही पासवर्ड दर्ज करें।' }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          
+          session = retryData.session;
+          user = retryData.user;
+        } else {
+          return new Response(
+            JSON.stringify({ error: 'लॉगिन में समस्या आई। कृपया पासवर्ड दर्ज करें।' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } else {
+        session = signInData.session;
+        user = signInData.user;
+      }
     }
 
     // Delete used OTP
