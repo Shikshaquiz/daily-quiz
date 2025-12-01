@@ -115,7 +115,17 @@ serve(async (req) => {
       if (createError) {
         console.error('Error creating user:', createError);
         
-        if (createError.message.includes('already been registered')) {
+        // Check for phone_exists error
+        if (createError.message.includes('Phone number already registered') || 
+            (createError as any).code === 'phone_exists') {
+          return new Response(
+            JSON.stringify({ error: 'यह फोन नंबर पहले से पंजीकृत है। कृपया साइन इन करें।' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        if (createError.message.includes('already been registered') ||
+            (createError as any).code === 'email_exists') {
           return new Response(
             JSON.stringify({ error: 'यह ईमेल पहले से पंजीकृत है' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
