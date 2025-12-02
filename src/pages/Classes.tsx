@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { GraduationCap, LogOut, Trophy, Gamepad2, Award, Building2 } from "lucide-react";
+import BannerAd from "@/components/ads/BannerAd";
 
 const competitiveExams = [
   { id: "navodaya", name: "नवोदय", emoji: "🏫", description: "जवाहर नवोदय विद्यालय" },
@@ -97,6 +98,9 @@ const Classes = () => {
             </Button>
           </div>
         </div>
+
+        {/* Banner Ad */}
+        <BannerAd adSlot="6101389397" className="mb-6" />
 
         {/* Kids Play Section */}
         <Card 

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, BookOpen, Trophy, Brain } from "lucide-react";
+import BannerAd from "@/components/ads/BannerAd";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -27,6 +28,11 @@ const Index = () => {
           >
             शुरू करें
           </Button>
+        </div>
+
+        {/* Banner Ad */}
+        <div className="max-w-5xl mx-auto mt-12">
+          <BannerAd adSlot="6101389397" />
         </div>
 
         {/* Features Grid */}
