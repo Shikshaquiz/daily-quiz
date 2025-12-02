@@ -187,7 +187,22 @@ const Auth = () => {
       });
 
       if (error) throw new Error(error.message || "OTP सत्यापन में समस्या आई");
-      if (data?.error) throw new Error(data.error);
+      if (data?.error) {
+        // If phone already registered during signup, switch to signin
+        if (mode === "signup" && data.error.includes("पहले से पंजीकृत है")) {
+          toast({
+            title: "फोन नंबर पंजीकृत है",
+            description: "यह नंबर पहले से पंजीकृत है। कृपया साइन इन करें।",
+            variant: "destructive",
+          });
+          setLoading(false);
+          setMode("signin");
+          setStep("form");
+          setSignInMethod("password");
+          return;
+        }
+        throw new Error(data.error);
+      }
 
       if (mode === "forgot") {
         // Move to password reset step
