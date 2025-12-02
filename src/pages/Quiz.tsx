@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Trophy, CheckCircle, XCircle } from "lucide-react";
+import InterstitialAd from "@/components/ads/InterstitialAd";
 
 interface QuizQuestion {
   question: string;
@@ -22,6 +23,8 @@ const Quiz = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [credits, setCredits] = useState(0);
+  const [questionCount, setQuestionCount] = useState(0);
+  const [showAd, setShowAd] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -125,6 +128,21 @@ const Quiz = () => {
   };
 
   const handleNext = () => {
+    const newCount = questionCount + 1;
+    setQuestionCount(newCount);
+    
+    // Show ad after every 4 questions
+    if (newCount % 4 === 0) {
+      setShowAd(true);
+    } else {
+      setSelectedAnswer(null);
+      setShowResult(false);
+      loadQuestion();
+    }
+  };
+
+  const handleAdClosed = () => {
+    setShowAd(false);
     setSelectedAnswer(null);
     setShowResult(false);
     loadQuestion();
@@ -153,6 +171,12 @@ const Quiz = () => {
 
   return (
     <div className="min-h-screen bg-background p-4">
+      {showAd && (
+        <InterstitialAd 
+          adSlot="8396380249" 
+          onAdClosed={handleAdClosed}
+        />
+      )}
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
