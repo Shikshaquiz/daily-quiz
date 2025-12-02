@@ -10,10 +10,12 @@ import { GraduationCap, Loader2, User, Mail, Lock, Phone, ArrowLeft } from "luci
 
 type AuthMode = "signin" | "signup" | "forgot";
 type AuthStep = "form" | "otp" | "reset";
+type SignInMethod = "password" | "otp";
 
 const Auth = () => {
   const [mode, setMode] = useState<AuthMode>("signin");
   const [step, setStep] = useState<AuthStep>("form");
+  const [signInMethod, setSignInMethod] = useState<SignInMethod>("password");
   
   // Form fields
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -53,6 +55,52 @@ const Auth = () => {
     setConfirmPassword("");
     setNewPassword("");
     setStep("form");
+  };
+
+  const handlePasswordLogin = async () => {
+    setLoading(true);
+
+    try {
+      const cleanPhone = phoneNumber.replace(/\D/g, "");
+      if (cleanPhone.length !== 10) {
+        toast({
+          title: "गलत फोन नंबर",
+          description: "कृपया 10 अंकों का मान्य फोन नंबर दर्ज करें",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!password) {
+        toast({ title: "त्रुटि", description: "कृपया पासवर्ड दर्ज करें", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+
+      // Try to sign in with phone-based email and password
+      const email = `${cleanPhone}@phone.local`;
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "सफल लॉगिन",
+        description: "आपका स्वागत है!",
+      });
+    } catch (error: any) {
+      console.error("Error during password login:", error);
+      toast({
+        title: "त्रुटि",
+        description: "गलत फोन नंबर या पासवर्ड। कृपया पुनः प्रयास करें।",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSendOTP = async (forMode: AuthMode) => {
@@ -215,6 +263,24 @@ const Auth = () => {
     <div className="space-y-4">
       {step === "form" ? (
         <>
+          <div className="flex gap-2 mb-4">
+            <Button
+              type="button"
+              variant={signInMethod === "password" ? "default" : "outline"}
+              className="flex-1"
+              onClick={() => setSignInMethod("password")}
+            >
+              पासवर्ड
+            </Button>
+            <Button
+              type="button"
+              variant={signInMethod === "otp" ? "default" : "outline"}
+              className="flex-1"
+              onClick={() => setSignInMethod("otp")}
+            >
+              OTP
+            </Button>
+          </div>
           <div>
             <label className="text-sm font-medium mb-2 block">मोबाइल नंबर</label>
             <div className="relative">
@@ -229,12 +295,31 @@ const Auth = () => {
               />
             </div>
           </div>
+          {signInMethod === "password" && (
+            <div>
+              <label className="text-sm font-medium mb-2 block">पासवर्ड</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="password"
+                  placeholder="******"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+          )}
           <Button
-            onClick={() => handleSendOTP("signin")}
+            onClick={signInMethod === "password" ? handlePasswordLogin : () => handleSendOTP("signin")}
             className="w-full bg-gradient-primary hover:opacity-90"
             disabled={loading}
           >
-            {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />भेजा जा रहा है...</> : "OTP भेजें"}
+            {loading ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{signInMethod === "password" ? "लॉगिन हो रहा है..." : "भेजा जा रहा है..."}</>
+            ) : (
+              signInMethod === "password" ? "लॉगिन करें" : "OTP भेजें"
+            )}
           </Button>
           <Button
             type="button"

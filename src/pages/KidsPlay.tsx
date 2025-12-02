@@ -139,6 +139,10 @@ const KidsPlay = () => {
   const [selectedCard, setSelectedCard] = useState<any>(null);
   const [selectedPahada, setSelectedPahada] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("hindi");
+  const [hindiPage, setHindiPage] = useState(0);
+  const [englishPage, setEnglishPage] = useState(0);
+  const [numberPage, setNumberPage] = useState(0);
+  const [pahadaPage, setPahadaPage] = useState(0);
 
   const speakText = (text: string, lang: string = "hi-IN") => {
     if ('speechSynthesis' in window) {
@@ -285,33 +289,125 @@ const KidsPlay = () => {
           </TabsList>
 
           <TabsContent value="hindi">
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-              {hindiAlphabet.map((item) => renderAlphabetCard(item, true))}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {hindiAlphabet.slice(hindiPage * 4, hindiPage * 4 + 4).map((item) => renderAlphabetCard(item, true))}
+              </div>
+              <div className="flex justify-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setHindiPage(Math.max(0, hindiPage - 1))}
+                  disabled={hindiPage === 0}
+                >
+                  पिछला
+                </Button>
+                <span className="px-4 py-2 text-sm">
+                  {hindiPage + 1} / {Math.ceil(hindiAlphabet.length / 4)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setHindiPage(Math.min(Math.ceil(hindiAlphabet.length / 4) - 1, hindiPage + 1))}
+                  disabled={hindiPage >= Math.ceil(hindiAlphabet.length / 4) - 1}
+                >
+                  अगला
+                </Button>
+              </div>
             </div>
           </TabsContent>
 
           <TabsContent value="english">
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-              {englishAlphabet.map((item) => renderAlphabetCard(item, false))}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {englishAlphabet.slice(englishPage * 4, englishPage * 4 + 4).map((item) => renderAlphabetCard(item, false))}
+              </div>
+              <div className="flex justify-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEnglishPage(Math.max(0, englishPage - 1))}
+                  disabled={englishPage === 0}
+                >
+                  Previous
+                </Button>
+                <span className="px-4 py-2 text-sm">
+                  {englishPage + 1} / {Math.ceil(englishAlphabet.length / 4)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEnglishPage(Math.min(Math.ceil(englishAlphabet.length / 4) - 1, englishPage + 1))}
+                  disabled={englishPage >= Math.ceil(englishAlphabet.length / 4) - 1}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           </TabsContent>
 
           <TabsContent value="numbers">
-            <p className="text-center text-muted-foreground mb-4">1 से 100 तक गिनती सीखें</p>
-            <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2">
-              {numbers.map((item) => renderNumberCard(item))}
+            <p className="text-center text-muted-foreground mb-4">1 से 10 तक गिनती सीखें</p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                {numbers.slice(numberPage * 10, numberPage * 10 + 10).map((item) => renderNumberCard(item))}
+              </div>
+              <div className="flex justify-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setNumberPage(Math.max(0, numberPage - 1))}
+                  disabled={numberPage === 0}
+                >
+                  पिछला
+                </Button>
+                <span className="px-4 py-2 text-sm">
+                  {numberPage * 10 + 1}-{Math.min((numberPage + 1) * 10, 100)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setNumberPage(Math.min(Math.ceil(numbers.length / 10) - 1, numberPage + 1))}
+                  disabled={numberPage >= Math.ceil(numbers.length / 10) - 1}
+                >
+                  अगला
+                </Button>
+              </div>
             </div>
           </TabsContent>
 
           <TabsContent value="pahada">
             <p className="text-center text-muted-foreground mb-4">1 से 20 तक पहाड़ा सीखें</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                {pahadas.map((item) => renderPahadaCard(item))}
-              </div>
-              {selectedPahada && (
+            <div className="space-y-4">
+              {selectedPahada ? (
                 <div>
                   {renderPahadaTable(selectedPahada)}
+                  <div className="flex justify-center gap-2 mt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setSelectedPahada(Math.max(1, selectedPahada - 1))}
+                      disabled={selectedPahada === 1}
+                    >
+                      पिछला पहाड़ा
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setSelectedPahada(null)}
+                    >
+                      सभी देखें
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setSelectedPahada(Math.min(20, selectedPahada + 1))}
+                      disabled={selectedPahada === 20}
+                    >
+                      अगला पहाड़ा
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                  {pahadas.map((item) => renderPahadaCard(item))}
                 </div>
               )}
             </div>
