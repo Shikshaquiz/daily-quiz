@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Trophy, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import InterstitialAd from "@/components/ads/InterstitialAd";
+import BannerAd from "@/components/ads/BannerAd";
 
 interface QuizQuestion {
   question: string;
@@ -194,6 +195,9 @@ const CompetitiveQuiz = () => {
           </div>
         </div>
 
+        {/* Banner Ad */}
+        <BannerAd adSlot="6101389397" className="mb-6" />
+
         {/* Quiz Content */}
         {loading ? (
           <Card className="p-8 flex flex-col items-center justify-center">
@@ -263,6 +267,9 @@ const CompetitiveQuiz = () => {
                 </p>
               </Card>
             )}
+
+            {/* Banner Ad */}
+            <BannerAd adSlot="6101389397" className="mb-6" />
 
             {/* Action Button */}
             {isCorrect === null ? (
