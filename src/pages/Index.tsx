@@ -1,14 +1,41 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, BookOpen, Trophy, Brain } from "lucide-react";
+import { GraduationCap, BookOpen, Trophy, Brain, User } from "lucide-react";
 import BannerAd from "@/components/ads/BannerAd";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setIsLoggedIn(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-primary">
+      {/* Profile Button */}
+      {isLoggedIn && (
+        <div className="absolute top-4 right-4">
+          <Button
+            onClick={() => navigate("/profile")}
+            variant="ghost"
+            size="icon"
+            className="bg-white/20 hover:bg-white/30 text-white rounded-full"
+          >
+            <User className="h-5 w-5" />
+          </Button>
+        </div>
+      )}
       <div className="container mx-auto px-4 py-16">
         {/* Hero Section */}
         <div className="text-center mb-16">
