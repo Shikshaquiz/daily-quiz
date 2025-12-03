@@ -48,6 +48,7 @@ export type Database = {
           full_name: string | null
           id: string
           phone_number: string
+          referral_code: string | null
           username: string | null
         }
         Insert: {
@@ -56,6 +57,7 @@ export type Database = {
           full_name?: string | null
           id: string
           phone_number: string
+          referral_code?: string | null
           username?: string | null
         }
         Update: {
@@ -64,6 +66,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone_number?: string
+          referral_code?: string | null
           username?: string | null
         }
         Relationships: []
@@ -115,6 +118,30 @@ export type Database = {
           },
         ]
       }
+      referrals: {
+        Row: {
+          created_at: string
+          credits_earned: number
+          id: string
+          referred_id: string
+          referrer_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_earned?: number
+          id?: string
+          referred_id: string
+          referrer_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_earned?: number
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+        }
+        Relationships: []
+      }
       user_credits: {
         Row: {
           created_at: string
@@ -146,6 +173,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      withdrawals: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          processed_at: string | null
+          rupees: number
+          status: string
+          upi_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          rupees: number
+          status?: string
+          upi_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          rupees?: number
+          status?: string
+          upi_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
