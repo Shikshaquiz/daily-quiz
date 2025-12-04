@@ -4,12 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  User, 
-  Phone, 
   Coins, 
   Share2, 
   Wallet, 
@@ -267,23 +264,6 @@ const Profile = () => {
       <div className="px-4 -mt-16">
         <Card className="shadow-lg">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-4 mb-6">
-              <Avatar className="h-16 w-16 border-4 border-primary/20">
-                <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-                  {profile?.full_name?.[0]?.toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <h2 className="text-lg font-semibold text-foreground">
-                  {profile?.full_name || "उपयोगकर्ता"}
-                </h2>
-                <div className="flex items-center gap-1 text-muted-foreground text-sm">
-                  <Phone className="h-3 w-3" />
-                  <span>+91 {profile?.phone_number}</span>
-                </div>
-              </div>
-            </div>
-
             {/* Points Card */}
             <Dialog open={showPointsDialog} onOpenChange={setShowPointsDialog}>
               <DialogTrigger asChild>
