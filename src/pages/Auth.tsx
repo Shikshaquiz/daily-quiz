@@ -123,48 +123,21 @@ const Auth = () => {
 
       // Sign up with phone-based email
       const authEmail = `${cleanPhone}@phone.local`;
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: authEmail,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
+            phone_number: cleanPhone,
             full_name: username,
-            phone: cleanPhone,
+            username: username,
+            email: email,
           }
         }
       });
 
       if (error) throw error;
-
-      // Update profile with additional info
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .upsert({
-            id: data.user.id,
-            phone_number: cleanPhone,
-            full_name: username,
-            email: email,
-            username: username,
-          });
-
-        if (profileError) {
-          console.error("Profile update error:", profileError);
-        }
-
-        // Initialize user credits
-        const { error: creditsError } = await supabase
-          .from("user_credits")
-          .upsert({
-            user_id: data.user.id,
-            credits: 0,
-          });
-
-        if (creditsError) {
-          console.error("Credits init error:", creditsError);
-        }
-      }
 
       toast({
         title: "खाता बनाया गया",
