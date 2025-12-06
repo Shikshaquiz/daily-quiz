@@ -10,7 +10,6 @@ import {
   Coins, 
   Share2, 
   Wallet, 
-  ArrowLeft, 
   Copy, 
   Users,
   IndianRupee,
@@ -19,7 +18,9 @@ import {
   XCircle,
   Loader2,
   BookOpen,
-  Trophy
+  Trophy,
+  GraduationCap,
+  LogOut
 } from "lucide-react";
 
 interface Profile {
@@ -270,25 +271,39 @@ const Profile = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      {/* Header */}
-      <div className="bg-primary text-primary-foreground p-4 pb-20">
-        <div className="flex items-center gap-3 mb-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/")}
-            className="text-primary-foreground hover:bg-primary-foreground/20"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-bold">मेरी प्रोफाइल</h1>
-        </div>
-      </div>
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
 
-      {/* Profile Card - Overlapping header */}
-      <div className="px-4 -mt-16">
+  return (
+    <div className="min-h-screen bg-background p-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6 p-4 bg-card rounded-lg shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-primary rounded-full flex items-center justify-center">
+              <GraduationCap className="w-5 h-5 md:w-6 md:h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg md:text-2xl font-bold">शिक्षा क्विज़</h1>
+              <p className="text-muted-foreground text-xs md:text-sm">मेरी प्रोफाइल</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 md:gap-4">
+            <div className="flex items-center gap-1 md:gap-2 bg-gradient-secondary px-2 md:px-4 py-1.5 md:py-2 rounded-lg">
+              <Trophy className="w-4 h-4 md:w-5 md:h-5 text-secondary-foreground" />
+              <span className="font-bold text-sm md:text-base text-secondary-foreground">{credits}</span>
+              <span className="text-xs text-secondary-foreground hidden md:inline">क्रेडिट</span>
+            </div>
+            <Button variant="outline" size="icon" onClick={handleLogout} className="h-8 w-8 md:h-10 md:w-10">
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Profile Content */}
+        <div className="px-0">
         <Card className="shadow-lg">
           <CardContent className="pt-6">
             {/* Points Card */}
@@ -628,6 +643,7 @@ const Profile = () => {
             </CardContent>
           </Card>
         )}
+        </div>
       </div>
     </div>
   );
