@@ -20,7 +20,11 @@ import {
   BookOpen,
   Trophy,
   GraduationCap,
-  LogOut
+  LogOut,
+  TrendingUp,
+  Target,
+  Award,
+  Zap
 } from "lucide-react";
 
 interface Profile {
@@ -146,17 +150,62 @@ const Profile = () => {
     }
   };
 
-  const shareReferralCode = () => {
-    if (profile?.referral_code && navigator.share) {
-      navigator.share({
-        title: "शिक्षा क्विज़ ऐप",
-        text: `मेरा रेफरल कोड ${profile.referral_code} है। इस कोड का उपयोग करके साइन अप करें और 50 पॉइंट्स पाएं!`,
-        url: window.location.origin,
-      });
+  const [showShareDialog, setShowShareDialog] = useState(false);
+
+  const getShareLink = () => {
+    return `${window.location.origin}?ref=${profile?.referral_code}`;
+  };
+
+  const getShareMessage = () => {
+    return `🎓 शिक्षा क्विज़ ऐप - पढ़ाई करके पैसे कमाएं!\n\n✅ सही जवाब दें = 10 पॉइंट्स\n💰 5000 पॉइंट्स = ₹5\n🎁 मेरा रेफरल कोड: ${profile?.referral_code}\n\nअभी डाउनलोड करें: ${getShareLink()}`;
+  };
+
+  const shareToWhatsApp = () => {
+    const message = encodeURIComponent(getShareMessage());
+    window.open(`https://wa.me/?text=${message}`, "_blank");
+  };
+
+  const shareToTelegram = () => {
+    const message = encodeURIComponent(getShareMessage());
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(getShareLink())}&text=${message}`, "_blank");
+  };
+
+  const shareNative = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "शिक्षा क्विज़ ऐप",
+          text: getShareMessage(),
+          url: getShareLink(),
+        });
+      } catch (error) {
+        console.log("Share cancelled");
+      }
     } else {
-      copyReferralCode();
+      navigator.clipboard.writeText(getShareMessage());
+      toast({
+        title: "कॉपी हो गया!",
+        description: "शेयर मैसेज क्लिपबोर्ड में कॉपी हो गया",
+      });
     }
   };
+
+  // Calculate quiz statistics
+  const totalQuestions = quizHistory.length;
+  const correctAnswers = quizHistory.filter(q => q.is_correct).length;
+  const incorrectAnswers = totalQuestions - correctAnswers;
+  const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+
+  // Calculate level (1-50 based on credits)
+  // Level formula: Every 1000 credits = 1 level, max 50
+  const calculateLevel = (points: number) => {
+    const level = Math.floor(points / 1000) + 1;
+    return Math.min(level, 50);
+  };
+
+  const currentLevel = calculateLevel(credits);
+  const pointsForNextLevel = currentLevel >= 50 ? 0 : (currentLevel * 1000) - credits;
+  const progressToNextLevel = currentLevel >= 50 ? 100 : ((credits % 1000) / 1000) * 100;
 
   const handleWithdraw = async () => {
     if (!upiId.trim()) {
@@ -367,6 +416,95 @@ const Profile = () => {
               </DialogContent>
             </Dialog>
 
+            {/* Level Display */}
+            <Card className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white mb-4">
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white/20 p-3 rounded-full">
+                      <Award className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <p className="text-sm opacity-90">आपका लेवल</p>
+                      <p className="text-3xl font-bold">Level {currentLevel}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    {currentLevel < 50 ? (
+                      <>
+                        <p className="text-xs opacity-80">अगले लेवल के लिए</p>
+                        <p className="text-lg font-bold">{pointsForNextLevel} पॉइंट्स</p>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <Zap className="h-5 w-5" />
+                        <span className="font-bold">MAX LEVEL!</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {currentLevel < 50 && (
+                  <div className="mt-3">
+                    <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-white rounded-full transition-all duration-500"
+                        style={{ width: `${progressToNextLevel}%` }}
+                      />
+                    </div>
+                    <p className="text-xs mt-1 opacity-80 text-center">
+                      {Math.round(progressToNextLevel)}% पूर्ण
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Quiz Statistics */}
+            <Card className="mb-4 bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-950/30 dark:to-blue-950/30 border-cyan-200 dark:border-cyan-800">
+              <CardContent className="py-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <TrendingUp className="h-5 w-5 text-cyan-600" />
+                  <span className="font-semibold text-cyan-800 dark:text-cyan-200">Quiz आँकड़े</span>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center p-2 bg-white dark:bg-background rounded-lg">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                      <Target className="h-4 w-4 text-blue-500" />
+                    </div>
+                    <p className="text-xl font-bold text-blue-600">{totalQuestions}</p>
+                    <p className="text-xs text-muted-foreground">कुल सवाल</p>
+                  </div>
+                  <div className="text-center p-2 bg-white dark:bg-background rounded-lg">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    </div>
+                    <p className="text-xl font-bold text-green-600">{correctAnswers}</p>
+                    <p className="text-xs text-muted-foreground">सही</p>
+                  </div>
+                  <div className="text-center p-2 bg-white dark:bg-background rounded-lg">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                      <XCircle className="h-4 w-4 text-red-500" />
+                    </div>
+                    <p className="text-xl font-bold text-red-600">{incorrectAnswers}</p>
+                    <p className="text-xs text-muted-foreground">गलत</p>
+                  </div>
+                </div>
+                {/* Accuracy Bar */}
+                <div className="mt-3">
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="text-muted-foreground">सटीकता (Accuracy)</span>
+                    <span className="font-bold text-cyan-600">{accuracy}%</span>
+                  </div>
+                  <div className="h-3 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500"
+                      style={{ width: `${accuracy}%` }}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Quick Stats */}
             <div className="grid grid-cols-2 gap-3">
               <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
@@ -410,13 +548,78 @@ const Profile = () => {
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
-            <Button onClick={shareReferralCode} className="w-full" variant="outline">
-              <Share2 className="h-4 w-4 mr-2" />
-              दोस्तों को शेयर करें
-            </Button>
-            <p className="text-xs text-muted-foreground text-center mt-2">
-              हर सफल रेफरल पर 50 पॉइंट्स मिलेंगे
-            </p>
+            <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+              <DialogTrigger asChild>
+                <Button className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white">
+                  <Share2 className="h-4 w-4 mr-2" />
+                  दोस्तों को शेयर करें
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Share2 className="h-5 w-5 text-primary" />
+                    शेयर करें
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="bg-muted p-3 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">शेयर लिंक</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-sm bg-background p-2 rounded border truncate">
+                        {getShareLink()}
+                      </code>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => {
+                          navigator.clipboard.writeText(getShareLink());
+                          toast({ title: "लिंक कॉपी हो गया!" });
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button 
+                      onClick={shareToWhatsApp}
+                      className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white"
+                    >
+                      <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                      </svg>
+                      WhatsApp
+                    </Button>
+                    <Button 
+                      onClick={shareToTelegram}
+                      className="w-full bg-[#0088cc] hover:bg-[#006699] text-white"
+                    >
+                      <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                      </svg>
+                      Telegram
+                    </Button>
+                  </div>
+
+                  <Button 
+                    onClick={shareNative}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Share2 className="h-4 w-4 mr-2" />
+                    अन्य ऐप में शेयर करें
+                  </Button>
+
+                  <div className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-lg text-sm">
+                    <p className="font-medium text-amber-800 dark:text-amber-200">
+                      🎁 हर सफल रेफरल पर 50 पॉइंट्स मिलेंगे!
+                    </p>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 
