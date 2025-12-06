@@ -17,7 +17,9 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Loader2
+  Loader2,
+  BookOpen,
+  Trophy
 } from "lucide-react";
 
 interface Profile {
@@ -36,6 +38,18 @@ interface Withdrawal {
   created_at: string;
 }
 
+interface QuizHistoryItem {
+  id: string;
+  question: string;
+  user_answer: string;
+  correct_answer: string;
+  is_correct: boolean;
+  credits_earned: number;
+  subject: string;
+  class_number: number;
+  created_at: string;
+}
+
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -43,6 +57,7 @@ const Profile = () => {
   const [credits, setCredits] = useState(0);
   const [referralCount, setReferralCount] = useState(0);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
+  const [quizHistory, setQuizHistory] = useState<QuizHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [upiId, setUpiId] = useState("");
   const [withdrawing, setWithdrawing] = useState(false);
@@ -100,6 +115,18 @@ const Profile = () => {
 
       if (withdrawalsData) {
         setWithdrawals(withdrawalsData);
+      }
+
+      // Fetch quiz history
+      const { data: quizData } = await supabase
+        .from("quiz_history")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (quizData) {
+        setQuizHistory(quizData);
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -468,6 +495,89 @@ const Profile = () => {
                 </div>
               </DialogContent>
             </Dialog>
+          </CardContent>
+        </Card>
+
+        {/* Quiz History */}
+        <Card className="mt-4 shadow-md">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-primary" />
+              Quiz इतिहास
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {quizHistory.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <Trophy className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">अभी तक कोई quiz नहीं खेला</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-3"
+                  onClick={() => navigate("/classes")}
+                >
+                  Quiz खेलें
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {quizHistory.map((q) => (
+                  <div 
+                    key={q.id} 
+                    className={`p-3 rounded-lg border ${
+                      q.is_correct 
+                        ? "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800" 
+                        : "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium line-clamp-2">{q.question}</p>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                          <span className="bg-muted px-1.5 py-0.5 rounded">कक्षा {q.class_number}</span>
+                          <span className="bg-muted px-1.5 py-0.5 rounded">{q.subject}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {q.is_correct ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-600" />
+                        )}
+                        <span className={`text-sm font-bold ${
+                          q.is_correct ? "text-green-600" : "text-red-600"
+                        }`}>
+                          {q.credits_earned > 0 ? `+${q.credits_earned}` : q.credits_earned}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs">
+                      <p>
+                        <span className="text-muted-foreground">आपका जवाब: </span>
+                        <span className={q.is_correct ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"}>
+                          {q.user_answer}
+                        </span>
+                      </p>
+                      {!q.is_correct && (
+                        <p>
+                          <span className="text-muted-foreground">सही जवाब: </span>
+                          <span className="text-green-700 dark:text-green-300">{q.correct_answer}</span>
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {new Date(q.created_at).toLocaleDateString("hi-IN", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit"
+                      })}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
