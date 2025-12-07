@@ -24,7 +24,10 @@ import {
   TrendingUp,
   Target,
   Award,
-  Zap
+  Zap,
+  User,
+  Phone,
+  Mail
 } from "lucide-react";
 
 interface Profile {
@@ -32,6 +35,8 @@ interface Profile {
   full_name: string | null;
   phone_number: string;
   referral_code: string | null;
+  username: string | null;
+  email: string | null;
 }
 
 interface Withdrawal {
@@ -355,6 +360,39 @@ const Profile = () => {
         <div className="px-0">
         <Card className="shadow-lg">
           <CardContent className="pt-6">
+            {/* User Info Card */}
+            <Card className="mb-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-200 dark:border-emerald-800">
+              <CardContent className="py-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <User className="h-5 w-5 text-emerald-600" />
+                  <span className="font-semibold text-emerald-800 dark:text-emerald-200">व्यक्तिगत जानकारी</span>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-2 bg-white dark:bg-background rounded-lg">
+                    <User className="h-4 w-4 text-emerald-500" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">नाम</p>
+                      <p className="font-medium">{profile?.full_name || profile?.username || "—"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-2 bg-white dark:bg-background rounded-lg">
+                    <Phone className="h-4 w-4 text-emerald-500" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">मोबाइल नंबर</p>
+                      <p className="font-medium">{profile?.phone_number || "—"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-2 bg-white dark:bg-background rounded-lg">
+                    <Mail className="h-4 w-4 text-emerald-500" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">ईमेल</p>
+                      <p className="font-medium">{profile?.email || "—"}</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Points Card */}
             <Dialog open={showPointsDialog} onOpenChange={setShowPointsDialog}>
               <DialogTrigger asChild>
