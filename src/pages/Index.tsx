@@ -298,7 +298,7 @@ const Index = () => {
                       className="w-full justify-start text-left"
                       onClick={() => {
                         if (isLoggedIn) {
-                          navigate(`/quiz?class=${classNum}`);
+                          navigate(`/quiz/${classNum}`);
                         } else {
                           navigate("/auth");
                         }
