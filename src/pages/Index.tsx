@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { GraduationCap, BookOpen, Trophy, Brain, User, LogOut, Crown, Medal } from "lucide-react";
+import { GraduationCap, Trophy, User, LogOut, Crown, Medal, ChevronDown, ChevronRight, TrendingUp, Target, Award, Zap } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Progress } from "@/components/ui/progress";
 import BannerAd from "@/components/ads/BannerAd";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -13,11 +15,26 @@ interface LeaderboardUser {
   level: number;
 }
 
+interface UserStats {
+  totalQuestions: number;
+  correctAnswers: number;
+  incorrectAnswers: number;
+}
+
+const classGroups = [
+  { name: "कक्षा 1-5", classes: [1, 2, 3, 4, 5] },
+  { name: "कक्षा 6-10", classes: [6, 7, 8, 9, 10] }
+];
+
 const Index = () => {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const [userCredits, setUserCredits] = useState(0);
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
+  const [userStats, setUserStats] = useState<UserStats>({ totalQuestions: 0, correctAnswers: 0, incorrectAnswers: 0 });
+  const [openGroups, setOpenGroups] = useState<string[]>([]);
+  const [username, setUsername] = useState("");
 
   const getLevelFromPoints = (points: number): number => {
     if (points <= 0) return 1;
@@ -25,18 +42,29 @@ const Index = () => {
     return Math.min(level, 50);
   };
 
+  const currentLevel = getLevelFromPoints(userCredits);
+  const pointsForNextLevel = currentLevel * 100;
+  const progressToNextLevel = Math.min((userCredits % 100) / 100 * 100, 100);
+  const accuracy = userStats.totalQuestions > 0 ? ((userStats.correctAnswers / userStats.totalQuestions) * 100).toFixed(1) : "0";
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsLoggedIn(!!session);
       if (session?.user) {
+        setUserId(session.user.id);
         fetchUserCredits(session.user.id);
+        fetchUserStats(session.user.id);
+        fetchUserProfile(session.user.id);
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setIsLoggedIn(!!session);
       if (session?.user) {
+        setUserId(session.user.id);
         fetchUserCredits(session.user.id);
+        fetchUserStats(session.user.id);
+        fetchUserProfile(session.user.id);
       }
     });
 
@@ -44,6 +72,39 @@ const Index = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const fetchUserProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", userId)
+      .maybeSingle();
+    if (data) setUsername(data.username || "User");
+  };
+
+  const fetchUserStats = async (userId: string) => {
+    const { data } = await supabase
+      .from("quiz_history")
+      .select("is_correct")
+      .eq("user_id", userId);
+    
+    if (data) {
+      const correct = data.filter(q => q.is_correct).length;
+      setUserStats({
+        totalQuestions: data.length,
+        correctAnswers: correct,
+        incorrectAnswers: data.length - correct
+      });
+    }
+  };
+
+  const toggleGroup = (groupName: string) => {
+    setOpenGroups(prev => 
+      prev.includes(groupName) 
+        ? prev.filter(g => g !== groupName)
+        : [...prev, groupName]
+    );
+  };
 
   const fetchUserCredits = async (userId: string) => {
     const { data } = await supabase
@@ -96,7 +157,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      {/* Header - Like Classes page */}
+      {/* Header */}
       <Card className="mx-4 mt-4 p-4 border-border/50 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -105,7 +166,7 @@ const Index = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">शिक्षा क्विज़</h1>
-              <p className="text-sm text-muted-foreground">कक्षा चुनें</p>
+              <p className="text-sm text-muted-foreground">डैशबोर्ड</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -137,6 +198,135 @@ const Index = () => {
       {/* Banner Ad */}
       <div className="mx-4 mt-4">
         <BannerAd adSlot="6101389397" />
+      </div>
+
+      {/* Main Content: Profile + Classes side by side */}
+      <div className="mx-4 mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Left: Profile Section */}
+        <Card className="p-4 border-border/50 shadow-lg">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center">
+              <User className="w-7 h-7 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-foreground">{isLoggedIn ? username : "Guest"}</h2>
+              <p className="text-sm text-muted-foreground">
+                {isLoggedIn ? `Level ${currentLevel}` : "लॉगिन करें"}
+              </p>
+            </div>
+            {isLoggedIn && (
+              <Button onClick={() => navigate("/profile")} variant="ghost" size="sm" className="ml-auto">
+                प्रोफाइल →
+              </Button>
+            )}
+          </div>
+
+          {isLoggedIn ? (
+            <>
+              {/* Level Progress */}
+              <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium flex items-center gap-1">
+                    <Zap className="h-4 w-4 text-primary" />
+                    Level {currentLevel}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {userCredits} / {pointsForNextLevel} pts
+                  </span>
+                </div>
+                <Progress value={progressToNextLevel} className="h-2" />
+              </div>
+
+              {/* Quiz Stats */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2 bg-green-500/10 rounded-lg text-center">
+                  <Target className="h-4 w-4 text-green-500 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-green-600">{userStats.correctAnswers}</p>
+                  <p className="text-xs text-muted-foreground">सही</p>
+                </div>
+                <div className="p-2 bg-red-500/10 rounded-lg text-center">
+                  <Award className="h-4 w-4 text-red-500 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-red-600">{userStats.incorrectAnswers}</p>
+                  <p className="text-xs text-muted-foreground">गलत</p>
+                </div>
+                <div className="p-2 bg-blue-500/10 rounded-lg text-center">
+                  <TrendingUp className="h-4 w-4 text-blue-500 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-blue-600">{accuracy}%</p>
+                  <p className="text-xs text-muted-foreground">सटीकता</p>
+                </div>
+                <div className="p-2 bg-purple-500/10 rounded-lg text-center">
+                  <Trophy className="h-4 w-4 text-purple-500 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-purple-600">{userStats.totalQuestions}</p>
+                  <p className="text-xs text-muted-foreground">कुल प्रश्न</p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-4">
+              <Button onClick={() => navigate("/auth")}>लॉगिन करें</Button>
+            </div>
+          )}
+        </Card>
+
+        {/* Right: Classes Section */}
+        <Card className="p-4 border-border/50 shadow-lg">
+          <h2 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+            <GraduationCap className="h-5 w-5 text-primary" />
+            कक्षा चुनें
+          </h2>
+          
+          <div className="space-y-2">
+            {classGroups.map((group) => (
+              <Collapsible 
+                key={group.name} 
+                open={openGroups.includes(group.name)}
+                onOpenChange={() => toggleGroup(group.name)}
+              >
+                <CollapsibleTrigger className="w-full flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+                  <span className="font-medium text-foreground">{group.name}</span>
+                  {openGroups.includes(group.name) ? (
+                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  )}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 space-y-1 pl-2">
+                  {group.classes.map((classNum) => (
+                    <Button
+                      key={classNum}
+                      variant="ghost"
+                      className="w-full justify-start text-left"
+                      onClick={() => {
+                        if (isLoggedIn) {
+                          navigate(`/quiz?class=${classNum}`);
+                        } else {
+                          navigate("/auth");
+                        }
+                      }}
+                    >
+                      कक्षा {classNum}
+                    </Button>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+            ))}
+
+            {/* Competitive Exams */}
+            <Button
+              variant="outline"
+              className="w-full mt-2 border-primary/50 text-primary"
+              onClick={() => {
+                if (isLoggedIn) {
+                  navigate("/competitive-quiz");
+                } else {
+                  navigate("/auth");
+                }
+              }}
+            >
+              🏆 प्रतियोगिता परीक्षा
+            </Button>
+          </div>
+        </Card>
       </div>
 
       {/* Leaderboard Section */}
@@ -181,62 +371,16 @@ const Index = () => {
         )}
       </Card>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
-          <Card className="p-6 text-center border-border/50">
-            <div className="inline-flex items-center justify-center w-14 h-14 bg-primary/10 rounded-full mb-4">
-              <BookOpen className="w-7 h-7 text-primary" />
-            </div>
-            <h3 className="text-lg font-bold text-foreground mb-2">सभी विषय</h3>
-            <p className="text-sm text-muted-foreground">
-              गणित, विज्ञान, हिंदी, अंग्रेज़ी और सामाजिक विज्ञान
-            </p>
-          </Card>
 
-          <Card className="p-6 text-center border-border/50">
-            <div className="inline-flex items-center justify-center w-14 h-14 bg-primary/10 rounded-full mb-4">
-              <Brain className="w-7 h-7 text-primary" />
-            </div>
-            <h3 className="text-lg font-bold text-foreground mb-2">AI से बने प्रश्न</h3>
-            <p className="text-sm text-muted-foreground">
-              हर बार नए और रोचक प्रश्न
-            </p>
-          </Card>
-
-          <Card className="p-6 text-center border-border/50">
-            <div className="inline-flex items-center justify-center w-14 h-14 bg-primary/10 rounded-full mb-4">
-              <Trophy className="w-7 h-7 text-primary" />
-            </div>
-            <h3 className="text-lg font-bold text-foreground mb-2">क्रेडिट जीतें</h3>
-            <p className="text-sm text-muted-foreground">
-              सही उत्तर पर +10, गलत पर -10 क्रेडिट
-            </p>
-          </Card>
-        </div>
-
-        {/* Profile/Classes Button */}
-        <div className="text-center mt-8">
-          <Button
-            onClick={() => navigate(isLoggedIn ? "/classes" : "/auth")}
-            size="lg"
-            className="px-8 py-6 text-lg shadow-lg"
-          >
-            {isLoggedIn ? "कक्षा चुनें" : "अभी शुरू करें"}
-          </Button>
-          
-          {isLoggedIn && (
-            <Button
-              onClick={() => navigate("/profile")}
-              variant="outline"
-              size="lg"
-              className="ml-4 px-8 py-6 text-lg"
-            >
-              <User className="h-5 w-5 mr-2" />
-              प्रोफाइल
-            </Button>
-          )}
-        </div>
+      {/* Kids Play Button */}
+      <div className="mx-4 mt-4 mb-8">
+        <Button
+          onClick={() => navigate("/kids-play")}
+          className="w-full py-6 text-lg"
+          variant="outline"
+        >
+          🎮 Kids Play - बच्चों के लिए
+        </Button>
       </div>
     </div>
   );
