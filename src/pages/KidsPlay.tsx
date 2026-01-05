@@ -134,6 +134,103 @@ const generateAdditions = () => {
 
 const additions = generateAdditions();
 
+// Subtraction examples
+const generateSubtractions = () => {
+  const subtractions = [];
+  for (let i = 10; i <= 30; i++) {
+    for (let j = 1; j <= 9; j++) {
+      if (subtractions.length < 50 && i > j) {
+        subtractions.push({
+          num1: i,
+          num2: j,
+          result: i - j,
+          display: `${i} - ${j} = ${i - j}`,
+        });
+      }
+    }
+  }
+  return subtractions;
+};
+
+const subtractions = generateSubtractions();
+
+// Multiplication examples
+const generateMultiplications = () => {
+  const multiplications = [];
+  for (let i = 2; i <= 10; i++) {
+    for (let j = 1; j <= 10; j++) {
+      if (multiplications.length < 50) {
+        multiplications.push({
+          num1: i,
+          num2: j,
+          result: i * j,
+          display: `${i} × ${j} = ${i * j}`,
+        });
+      }
+    }
+  }
+  return multiplications;
+};
+
+const multiplications = generateMultiplications();
+
+// Shapes Data
+const shapes = [
+  { name: "वृत्त", english: "Circle", emoji: "⭕", sides: 0 },
+  { name: "त्रिभुज", english: "Triangle", emoji: "🔺", sides: 3 },
+  { name: "वर्ग", english: "Square", emoji: "🟧", sides: 4 },
+  { name: "आयत", english: "Rectangle", emoji: "🟦", sides: 4 },
+  { name: "पंचभुज", english: "Pentagon", emoji: "⬠", sides: 5 },
+  { name: "षट्भुज", english: "Hexagon", emoji: "⬡", sides: 6 },
+  { name: "तारा", english: "Star", emoji: "⭐", sides: 5 },
+  { name: "हीरा", english: "Diamond", emoji: "💎", sides: 4 },
+  { name: "दिल", english: "Heart", emoji: "❤️", sides: 0 },
+  { name: "अंडाकार", english: "Oval", emoji: "🥚", sides: 0 },
+];
+
+// Colors Data
+const colors = [
+  { name: "लाल", english: "Red", emoji: "🔴", hex: "#EF4444" },
+  { name: "नीला", english: "Blue", emoji: "🔵", hex: "#3B82F6" },
+  { name: "हरा", english: "Green", emoji: "🟢", hex: "#22C55E" },
+  { name: "पीला", english: "Yellow", emoji: "🟡", hex: "#EAB308" },
+  { name: "नारंगी", english: "Orange", emoji: "🟠", hex: "#F97316" },
+  { name: "बैंगनी", english: "Purple", emoji: "🟣", hex: "#A855F7" },
+  { name: "गुलाबी", english: "Pink", emoji: "💗", hex: "#EC4899" },
+  { name: "भूरा", english: "Brown", emoji: "🟤", hex: "#A16207" },
+  { name: "काला", english: "Black", emoji: "⚫", hex: "#000000" },
+  { name: "सफेद", english: "White", emoji: "⚪", hex: "#FFFFFF" },
+  { name: "ग्रे", english: "Gray", emoji: "🩶", hex: "#6B7280" },
+  { name: "आसमानी", english: "Sky Blue", emoji: "🩵", hex: "#38BDF8" },
+];
+
+// Days of Week
+const daysOfWeek = [
+  { hindi: "रविवार", english: "Sunday", emoji: "☀️" },
+  { hindi: "सोमवार", english: "Monday", emoji: "🌙" },
+  { hindi: "मंगलवार", english: "Tuesday", emoji: "🔴" },
+  { hindi: "बुधवार", english: "Wednesday", emoji: "🟢" },
+  { hindi: "गुरुवार", english: "Thursday", emoji: "🟡" },
+  { hindi: "शुक्रवार", english: "Friday", emoji: "🔵" },
+  { hindi: "शनिवार", english: "Saturday", emoji: "🟣" },
+];
+
+// Months
+const months = [
+  { hindi: "जनवरी", english: "January", emoji: "❄️" },
+  { hindi: "फरवरी", english: "February", emoji: "💕" },
+  { hindi: "मार्च", english: "March", emoji: "🌸" },
+  { hindi: "अप्रैल", english: "April", emoji: "🌷" },
+  { hindi: "मई", english: "May", emoji: "🌻" },
+  { hindi: "जून", english: "June", emoji: "☀️" },
+  { hindi: "जुलाई", english: "July", emoji: "🌧️" },
+  { hindi: "अगस्त", english: "August", emoji: "🌈" },
+  { hindi: "सितंबर", english: "September", emoji: "🍂" },
+  { hindi: "अक्टूबर", english: "October", emoji: "🎃" },
+  { hindi: "नवंबर", english: "November", emoji: "🍁" },
+  { hindi: "दिसंबर", english: "December", emoji: "🎄" },
+];
+
 const KidsPlay = () => {
   const navigate = useNavigate();
   const [selectedCard, setSelectedCard] = useState<any>(null);
@@ -280,12 +377,17 @@ const KidsPlay = () => {
 
         {/* Tabs for different content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
-            <TabsTrigger value="hindi" className="text-xs md:text-sm">हिंदी</TabsTrigger>
-            <TabsTrigger value="english" className="text-xs md:text-sm">ABC</TabsTrigger>
-            <TabsTrigger value="numbers" className="text-xs md:text-sm">गिनती</TabsTrigger>
-            <TabsTrigger value="pahada" className="text-xs md:text-sm">पहाड़ा</TabsTrigger>
-            <TabsTrigger value="jod" className="text-xs md:text-sm">जोड़</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5 md:grid-cols-10 mb-6">
+            <TabsTrigger value="hindi" className="text-xs">हिंदी</TabsTrigger>
+            <TabsTrigger value="english" className="text-xs">ABC</TabsTrigger>
+            <TabsTrigger value="numbers" className="text-xs">गिनती</TabsTrigger>
+            <TabsTrigger value="pahada" className="text-xs">पहाड़ा</TabsTrigger>
+            <TabsTrigger value="jod" className="text-xs">जोड़</TabsTrigger>
+            <TabsTrigger value="ghatav" className="text-xs">घटाव</TabsTrigger>
+            <TabsTrigger value="guna" className="text-xs">गुणा</TabsTrigger>
+            <TabsTrigger value="shapes" className="text-xs">आकार</TabsTrigger>
+            <TabsTrigger value="colors" className="text-xs">रंग</TabsTrigger>
+            <TabsTrigger value="calendar" className="text-xs">कैलेंडर</TabsTrigger>
           </TabsList>
 
           <TabsContent value="hindi">
@@ -417,6 +519,141 @@ const KidsPlay = () => {
             <p className="text-center text-muted-foreground mb-4">जोड़ना सीखें</p>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
               {additions.map((item) => renderAdditionCard(item))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="ghatav">
+            <p className="text-center text-muted-foreground mb-4">घटाना सीखें</p>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+              {subtractions.map((item) => (
+                <Card
+                  key={`${item.num1}-${item.num2}-sub`}
+                  className="p-3 cursor-pointer hover:scale-105 transition-all hover:shadow-lg border-2 hover:border-destructive"
+                  onClick={() => {
+                    setSelectedCard({ type: 'subtraction', ...item });
+                    speakText(`${item.num1} में से ${item.num2} घटाने पर ${item.result}`, "hi-IN");
+                  }}
+                >
+                  <div className="text-center">
+                    <div className="text-lg md:text-xl font-bold text-destructive">{item.display}</div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="guna">
+            <p className="text-center text-muted-foreground mb-4">गुणा करना सीखें</p>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+              {multiplications.map((item) => (
+                <Card
+                  key={`${item.num1}-${item.num2}-mul`}
+                  className="p-3 cursor-pointer hover:scale-105 transition-all hover:shadow-lg border-2 hover:border-purple-500"
+                  onClick={() => {
+                    setSelectedCard({ type: 'multiplication', ...item });
+                    speakText(`${item.num1} गुणा ${item.num2} बराबर ${item.result}`, "hi-IN");
+                  }}
+                >
+                  <div className="text-center">
+                    <div className="text-lg md:text-xl font-bold text-purple-600">{item.display}</div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="shapes">
+            <p className="text-center text-muted-foreground mb-4">आकार पहचानें</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {shapes.map((shape) => (
+                <Card
+                  key={shape.name}
+                  className="p-4 cursor-pointer hover:scale-105 transition-all hover:shadow-lg border-2 hover:border-primary"
+                  onClick={() => {
+                    setSelectedCard({ type: 'shape', ...shape, letter: shape.emoji, word: `${shape.name} (${shape.english})` });
+                    speakText(`यह है ${shape.name}, अंग्रेजी में ${shape.english}`, "hi-IN");
+                  }}
+                >
+                  <div className="text-center">
+                    <div className="text-4xl md:text-5xl mb-2">{shape.emoji}</div>
+                    <div className="text-lg font-bold text-primary">{shape.name}</div>
+                    <div className="text-sm text-muted-foreground">{shape.english}</div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="colors">
+            <p className="text-center text-muted-foreground mb-4">रंग पहचानें</p>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+              {colors.map((color) => (
+                <Card
+                  key={color.name}
+                  className="p-4 cursor-pointer hover:scale-105 transition-all hover:shadow-lg border-2 hover:border-primary"
+                  onClick={() => {
+                    setSelectedCard({ type: 'color', ...color, letter: color.emoji, word: `${color.name} (${color.english})` });
+                    speakText(`यह है ${color.name} रंग, अंग्रेजी में ${color.english}`, "hi-IN");
+                  }}
+                >
+                  <div className="text-center">
+                    <div 
+                      className="w-12 h-12 md:w-16 md:h-16 rounded-full mx-auto mb-2 border-2 border-border"
+                      style={{ backgroundColor: color.hex }}
+                    />
+                    <div className="text-sm font-bold">{color.name}</div>
+                    <div className="text-xs text-muted-foreground">{color.english}</div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="calendar">
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-bold mb-3 text-center">📅 सप्ताह के दिन</h3>
+                <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+                  {daysOfWeek.map((day) => (
+                    <Card
+                      key={day.hindi}
+                      className="p-3 cursor-pointer hover:scale-105 transition-all hover:shadow-lg border-2 hover:border-primary"
+                      onClick={() => {
+                        setSelectedCard({ type: 'day', letter: day.emoji, word: `${day.hindi} (${day.english})` });
+                        speakText(`${day.hindi}, अंग्रेजी में ${day.english}`, "hi-IN");
+                      }}
+                    >
+                      <div className="text-center">
+                        <div className="text-2xl mb-1">{day.emoji}</div>
+                        <div className="text-xs font-bold">{day.hindi}</div>
+                        <div className="text-xs text-muted-foreground">{day.english}</div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold mb-3 text-center">📆 महीने</h3>
+                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                  {months.map((month) => (
+                    <Card
+                      key={month.hindi}
+                      className="p-3 cursor-pointer hover:scale-105 transition-all hover:shadow-lg border-2 hover:border-accent"
+                      onClick={() => {
+                        setSelectedCard({ type: 'month', letter: month.emoji, word: `${month.hindi} (${month.english})` });
+                        speakText(`${month.hindi}, अंग्रेजी में ${month.english}`, "hi-IN");
+                      }}
+                    >
+                      <div className="text-center">
+                        <div className="text-2xl mb-1">{month.emoji}</div>
+                        <div className="text-xs font-bold">{month.hindi}</div>
+                        <div className="text-xs text-muted-foreground">{month.english}</div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
