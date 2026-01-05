@@ -27,7 +27,8 @@ import {
   Zap,
   User,
   Phone,
-  Mail
+  Mail,
+  Pencil
 } from "lucide-react";
 
 interface Profile {
@@ -73,6 +74,10 @@ const Profile = () => {
   const [withdrawing, setWithdrawing] = useState(false);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
   const [showPointsDialog, setShowPointsDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchUserData();
@@ -330,6 +335,66 @@ const Profile = () => {
     navigate("/auth");
   };
 
+  const openEditDialog = () => {
+    setEditName(profile?.full_name || "");
+    setEditEmail(profile?.email || "");
+    setShowEditDialog(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editName.trim()) {
+      toast({
+        title: "त्रुटि",
+        description: "कृपया नाम दर्ज करें",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Basic email validation if provided
+    if (editEmail.trim() && !/^[\w.-]+@[\w.-]+\.\w+$/.test(editEmail.trim())) {
+      toast({
+        title: "त्रुटि",
+        description: "कृपया सही ईमेल दर्ज करें",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: editName.trim(),
+          email: editEmail.trim() || null,
+        })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      setProfile(prev => prev ? { ...prev, full_name: editName.trim(), email: editEmail.trim() || null } : null);
+      setShowEditDialog(false);
+
+      toast({
+        title: "सफल!",
+        description: "प्रोफाइल अपडेट हो गई",
+      });
+    } catch (error) {
+      console.error("Profile update error:", error);
+      toast({
+        title: "त्रुटि",
+        description: "प्रोफाइल अपडेट में समस्या हुई। कृपया पुनः प्रयास करें।",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto">
@@ -363,9 +428,15 @@ const Profile = () => {
             {/* User Info Card */}
             <Card className="mb-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-200 dark:border-emerald-800">
               <CardContent className="py-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <User className="h-5 w-5 text-emerald-600" />
-                  <span className="font-semibold text-emerald-800 dark:text-emerald-200">व्यक्तिगत जानकारी</span>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <User className="h-5 w-5 text-emerald-600" />
+                    <span className="font-semibold text-emerald-800 dark:text-emerald-200">व्यक्तिगत जानकारी</span>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={openEditDialog} className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900">
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 p-2 bg-white dark:bg-background rounded-lg">
@@ -392,6 +463,53 @@ const Profile = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Edit Profile Dialog */}
+            <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Pencil className="h-5 w-5 text-emerald-500" />
+                    प्रोफाइल अपडेट करें
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">नाम</label>
+                    <Input
+                      placeholder="अपना नाम दर्ज करें"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      maxLength={100}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">ईमेल</label>
+                    <Input
+                      type="email"
+                      placeholder="अपना ईमेल दर्ज करें"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      maxLength={255}
+                    />
+                  </div>
+                  <Button
+                    onClick={handleSaveProfile}
+                    disabled={saving}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        सेव हो रहा है...
+                      </>
+                    ) : (
+                      "सेव करें"
+                    )}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             {/* Points Card */}
             <Dialog open={showPointsDialog} onOpenChange={setShowPointsDialog}>
