@@ -78,13 +78,16 @@ const Classes = () => {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 p-4 bg-card rounded-lg shadow-md">
-          <div className="flex items-center gap-3">
+          <div 
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => navigate("/profile")}
+          >
             <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-primary rounded-full flex items-center justify-center">
               <GraduationCap className="w-5 h-5 md:w-6 md:h-6 text-white" />
             </div>
             <div>
               <h1 className="text-lg md:text-2xl font-bold">शिक्षा क्विज़</h1>
-              <p className="text-muted-foreground text-xs md:text-sm">कक्षा चुनें</p>
+              <p className="text-muted-foreground text-xs md:text-sm">प्रोफाइल देखें →</p>
             </div>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
