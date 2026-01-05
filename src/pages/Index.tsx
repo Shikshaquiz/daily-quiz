@@ -160,13 +160,16 @@ const Index = () => {
       {/* Header */}
       <Card className="mx-4 mt-4 p-4 border-border/50 shadow-lg">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div 
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => navigate("/profile")}
+          >
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
               <GraduationCap className="w-6 h-6 text-primary" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">शिक्षा क्विज़</h1>
-              <p className="text-sm text-muted-foreground">डैशबोर्ड</p>
+              <p className="text-sm text-muted-foreground">प्रोफाइल देखें →</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
