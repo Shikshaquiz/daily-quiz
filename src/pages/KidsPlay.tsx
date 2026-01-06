@@ -269,6 +269,30 @@ const vegetables = [
   { hindi: "पालक", english: "Spinach", emoji: "🥬" },
 ];
 
+// Animals Data
+const animals = [
+  { hindi: "शेर", english: "Lion", emoji: "🦁" },
+  { hindi: "हाथी", english: "Elephant", emoji: "🐘" },
+  { hindi: "बाघ", english: "Tiger", emoji: "🐅" },
+  { hindi: "भालू", english: "Bear", emoji: "🐻" },
+  { hindi: "बंदर", english: "Monkey", emoji: "🐒" },
+  { hindi: "गाय", english: "Cow", emoji: "🐄" },
+  { hindi: "कुत्ता", english: "Dog", emoji: "🐕" },
+  { hindi: "बिल्ली", english: "Cat", emoji: "🐱" },
+  { hindi: "घोड़ा", english: "Horse", emoji: "🐴" },
+  { hindi: "खरगोश", english: "Rabbit", emoji: "🐰" },
+  { hindi: "चूहा", english: "Mouse", emoji: "🐭" },
+  { hindi: "सूअर", english: "Pig", emoji: "🐷" },
+  { hindi: "भेड़", english: "Sheep", emoji: "🐑" },
+  { hindi: "बकरी", english: "Goat", emoji: "🐐" },
+  { hindi: "ऊंट", english: "Camel", emoji: "🐪" },
+  { hindi: "जिराफ", english: "Giraffe", emoji: "🦒" },
+  { hindi: "ज़ेबरा", english: "Zebra", emoji: "🦓" },
+  { hindi: "गैंडा", english: "Rhino", emoji: "🦏" },
+  { hindi: "मगरमच्छ", english: "Crocodile", emoji: "🐊" },
+  { hindi: "साँप", english: "Snake", emoji: "🐍" },
+];
+
 const KidsPlay = () => {
   const navigate = useNavigate();
   const [selectedCard, setSelectedCard] = useState<any>(null);
@@ -415,7 +439,7 @@ const KidsPlay = () => {
 
         {/* Tabs for different content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6 md:grid-cols-11 mb-6">
+          <TabsList className="grid w-full grid-cols-6 md:grid-cols-12 mb-6">
             <TabsTrigger value="hindi" className="text-xs">हिंदी</TabsTrigger>
             <TabsTrigger value="english" className="text-xs">ABC</TabsTrigger>
             <TabsTrigger value="numbers" className="text-xs">गिनती</TabsTrigger>
@@ -427,6 +451,7 @@ const KidsPlay = () => {
             <TabsTrigger value="colors" className="text-xs">रंग</TabsTrigger>
             <TabsTrigger value="calendar" className="text-xs">कैलेंडर</TabsTrigger>
             <TabsTrigger value="fruits" className="text-xs">फल-सब्जी</TabsTrigger>
+            <TabsTrigger value="animals" className="text-xs">जानवर</TabsTrigger>
           </TabsList>
 
           <TabsContent value="hindi">
@@ -740,6 +765,30 @@ const KidsPlay = () => {
                     </Card>
                   ))}
                 </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="animals">
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold mb-3 text-center">🦁 जानवर (Animals)</h3>
+              <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                {animals.map((animal) => (
+                  <Card
+                    key={animal.hindi}
+                    className="p-4 cursor-pointer hover:scale-105 transition-all hover:shadow-lg border-2 hover:border-primary bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/20"
+                    onClick={() => {
+                      setSelectedCard({ type: 'animal', letter: animal.emoji, word: `${animal.hindi} (${animal.english})` });
+                      speakText(`${animal.hindi}, अंग्रेजी में ${animal.english}`, "hi-IN");
+                    }}
+                  >
+                    <div className="text-center">
+                      <div className="text-4xl mb-2">{animal.emoji}</div>
+                      <div className="text-sm font-bold">{animal.hindi}</div>
+                      <div className="text-xs text-muted-foreground">{animal.english}</div>
+                    </div>
+                  </Card>
+                ))}
               </div>
             </div>
           </TabsContent>
