@@ -231,6 +231,44 @@ const months = [
   { hindi: "दिसंबर", english: "December", emoji: "🎄" },
 ];
 
+// Fruits Data
+const fruits = [
+  { hindi: "सेब", english: "Apple", emoji: "🍎" },
+  { hindi: "केला", english: "Banana", emoji: "🍌" },
+  { hindi: "अंगूर", english: "Grapes", emoji: "🍇" },
+  { hindi: "संतरा", english: "Orange", emoji: "🍊" },
+  { hindi: "आम", english: "Mango", emoji: "🥭" },
+  { hindi: "अनानास", english: "Pineapple", emoji: "🍍" },
+  { hindi: "तरबूज", english: "Watermelon", emoji: "🍉" },
+  { hindi: "स्ट्रॉबेरी", english: "Strawberry", emoji: "🍓" },
+  { hindi: "चेरी", english: "Cherry", emoji: "🍒" },
+  { hindi: "नींबू", english: "Lemon", emoji: "🍋" },
+  { hindi: "नाशपाती", english: "Pear", emoji: "🍐" },
+  { hindi: "आड़ू", english: "Peach", emoji: "🍑" },
+  { hindi: "कीवी", english: "Kiwi", emoji: "🥝" },
+  { hindi: "नारियल", english: "Coconut", emoji: "🥥" },
+  { hindi: "पपीता", english: "Papaya", emoji: "🧡" },
+];
+
+// Vegetables Data
+const vegetables = [
+  { hindi: "गाजर", english: "Carrot", emoji: "🥕" },
+  { hindi: "टमाटर", english: "Tomato", emoji: "🍅" },
+  { hindi: "आलू", english: "Potato", emoji: "🥔" },
+  { hindi: "प्याज", english: "Onion", emoji: "🧅" },
+  { hindi: "लहसुन", english: "Garlic", emoji: "🧄" },
+  { hindi: "मिर्च", english: "Chilli", emoji: "🌶️" },
+  { hindi: "बैंगन", english: "Brinjal", emoji: "🍆" },
+  { hindi: "खीरा", english: "Cucumber", emoji: "🥒" },
+  { hindi: "मक्का", english: "Corn", emoji: "🌽" },
+  { hindi: "ब्रोकली", english: "Broccoli", emoji: "🥦" },
+  { hindi: "पत्तागोभी", english: "Cabbage", emoji: "🥬" },
+  { hindi: "मटर", english: "Peas", emoji: "🫛" },
+  { hindi: "शिमला मिर्च", english: "Capsicum", emoji: "🫑" },
+  { hindi: "मूली", english: "Radish", emoji: "🥗" },
+  { hindi: "पालक", english: "Spinach", emoji: "🥬" },
+];
+
 const KidsPlay = () => {
   const navigate = useNavigate();
   const [selectedCard, setSelectedCard] = useState<any>(null);
@@ -377,7 +415,7 @@ const KidsPlay = () => {
 
         {/* Tabs for different content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 md:grid-cols-10 mb-6">
+          <TabsList className="grid w-full grid-cols-6 md:grid-cols-11 mb-6">
             <TabsTrigger value="hindi" className="text-xs">हिंदी</TabsTrigger>
             <TabsTrigger value="english" className="text-xs">ABC</TabsTrigger>
             <TabsTrigger value="numbers" className="text-xs">गिनती</TabsTrigger>
@@ -388,6 +426,7 @@ const KidsPlay = () => {
             <TabsTrigger value="shapes" className="text-xs">आकार</TabsTrigger>
             <TabsTrigger value="colors" className="text-xs">रंग</TabsTrigger>
             <TabsTrigger value="calendar" className="text-xs">कैलेंडर</TabsTrigger>
+            <TabsTrigger value="fruits" className="text-xs">फल-सब्जी</TabsTrigger>
           </TabsList>
 
           <TabsContent value="hindi">
@@ -649,6 +688,54 @@ const KidsPlay = () => {
                         <div className="text-2xl mb-1">{month.emoji}</div>
                         <div className="text-xs font-bold">{month.hindi}</div>
                         <div className="text-xs text-muted-foreground">{month.english}</div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="fruits">
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-bold mb-3 text-center">🍎 फल (Fruits)</h3>
+                <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                  {fruits.map((fruit) => (
+                    <Card
+                      key={fruit.hindi}
+                      className="p-4 cursor-pointer hover:scale-105 transition-all hover:shadow-lg border-2 hover:border-primary bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20"
+                      onClick={() => {
+                        setSelectedCard({ type: 'fruit', letter: fruit.emoji, word: `${fruit.hindi} (${fruit.english})` });
+                        speakText(`${fruit.hindi}, अंग्रेजी में ${fruit.english}`, "hi-IN");
+                      }}
+                    >
+                      <div className="text-center">
+                        <div className="text-4xl mb-2">{fruit.emoji}</div>
+                        <div className="text-sm font-bold">{fruit.hindi}</div>
+                        <div className="text-xs text-muted-foreground">{fruit.english}</div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold mb-3 text-center">🥕 सब्जियां (Vegetables)</h3>
+                <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                  {vegetables.map((veg) => (
+                    <Card
+                      key={veg.hindi}
+                      className="p-4 cursor-pointer hover:scale-105 transition-all hover:shadow-lg border-2 hover:border-accent bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20"
+                      onClick={() => {
+                        setSelectedCard({ type: 'vegetable', letter: veg.emoji, word: `${veg.hindi} (${veg.english})` });
+                        speakText(`${veg.hindi}, अंग्रेजी में ${veg.english}`, "hi-IN");
+                      }}
+                    >
+                      <div className="text-center">
+                        <div className="text-4xl mb-2">{veg.emoji}</div>
+                        <div className="text-sm font-bold">{veg.hindi}</div>
+                        <div className="text-xs text-muted-foreground">{veg.english}</div>
                       </div>
                     </Card>
                   ))}
