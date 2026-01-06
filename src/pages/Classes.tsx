@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { GraduationCap, LogOut, Trophy, Gamepad2, Award, Building2 } from "lucide-react";
+import { GraduationCap, LogOut, Trophy, Gamepad2, Award, Building2, BookOpen } from "lucide-react";
 import BannerAd from "@/components/ads/BannerAd";
 
 const competitiveExams = [
@@ -175,6 +175,23 @@ const Classes = () => {
             ))}
           </div>
         </div>
+
+        {/* General Knowledge Section */}
+        <Card 
+          className="p-4 md:p-6 mb-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white cursor-pointer hover:scale-[1.02] transition-all"
+          onClick={() => navigate("/general-knowledge")}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 md:w-20 md:h-20 bg-white/20 rounded-full flex items-center justify-center">
+              <BookOpen className="w-7 h-7 md:w-10 md:h-10 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl md:text-2xl font-bold">📚 सामान्य ज्ञान</h2>
+              <p className="text-sm md:text-base opacity-90">General Knowledge - हमेशा अपडेटेड!</p>
+              <p className="text-xs opacity-75 mt-1">भारत • विश्व • विज्ञान • इतिहास • भूगोल • करंट अफेयर्स</p>
+            </div>
+          </div>
+        </Card>
 
         {/* Competitive Exams Section */}
         <div className="mb-6">

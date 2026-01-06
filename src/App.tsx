@@ -10,6 +10,7 @@ import Quiz from "./pages/Quiz";
 import KidsPlay from "./pages/KidsPlay";
 import CompetitiveQuiz from "./pages/CompetitiveQuiz";
 import Profile from "./pages/Profile";
+import GeneralKnowledge from "./pages/GeneralKnowledge";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/kids-play" element={<KidsPlay />} />
           <Route path="/competitive/:examId" element={<CompetitiveQuiz />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/general-knowledge" element={<GeneralKnowledge />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
