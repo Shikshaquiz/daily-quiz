@@ -1,12 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, BookOpen, Globe, FlaskConical, Landmark, MapPin, Newspaper, Trophy, Users, Calendar, Flag } from "lucide-react";
+import { ArrowLeft, BookOpen, Globe, FlaskConical, Landmark, MapPin, Newspaper, Trophy, Users, Calendar, Flag, RefreshCw, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface CurrentAffairsFact {
+  title: string;
+  value: string;
+  english: string;
+  category: string;
+}
 
 // GK Categories with content
 const gkCategories = [
+  {
+    id: "current-affairs",
+    name: "करंट अफेयर्स",
+    english: "Current Affairs",
+    icon: Newspaper,
+    color: "from-rose-500 to-orange-500",
+    facts: [] as { title: string; value: string; english: string }[]
+  },
   {
     id: "india",
     name: "भारत",
@@ -171,9 +188,51 @@ const gkCategories = [
 
 const GeneralKnowledge = () => {
   const navigate = useNavigate();
-  const [activeCategory, setActiveCategory] = useState("india");
+  const [activeCategory, setActiveCategory] = useState("current-affairs");
+  const [currentAffairs, setCurrentAffairs] = useState<CurrentAffairsFact[]>([]);
+  const [currentAffairsDate, setCurrentAffairsDate] = useState<string>("");
+  const [isLoadingCurrentAffairs, setIsLoadingCurrentAffairs] = useState(false);
+
+  const fetchCurrentAffairs = async () => {
+    setIsLoadingCurrentAffairs(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-current-affairs');
+      
+      if (error) {
+        console.error('Error fetching current affairs:', error);
+        toast.error('करंट अफेयर्स लोड करने में समस्या हुई');
+        return;
+      }
+
+      if (data?.facts) {
+        setCurrentAffairs(data.facts);
+        setCurrentAffairsDate(data.date || '');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('करंट अफेयर्स लोड करने में समस्या हुई');
+    } finally {
+      setIsLoadingCurrentAffairs(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCurrentAffairs();
+  }, []);
 
   const currentCategory = gkCategories.find(cat => cat.id === activeCategory);
+
+  const getCategoryBadgeColor = (category: string) => {
+    switch (category) {
+      case 'राष्ट्रीय': return 'bg-orange-500';
+      case 'अंतर्राष्ट्रीय': return 'bg-blue-500';
+      case 'खेल': return 'bg-red-500';
+      case 'विज्ञान': return 'bg-purple-500';
+      case 'अर्थव्यवस्था': return 'bg-green-500';
+      case 'नियुक्ति': return 'bg-indigo-500';
+      default: return 'bg-gray-500';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -196,7 +255,7 @@ const GeneralKnowledge = () => {
 
         {/* Category Tabs */}
         <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 md:grid-cols-8 mb-6 h-auto">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-9 mb-6 h-auto">
             {gkCategories.map((category) => {
               const IconComponent = category.icon;
               return (
@@ -212,7 +271,78 @@ const GeneralKnowledge = () => {
             })}
           </TabsList>
 
-          {gkCategories.map((category) => (
+          {/* Current Affairs Tab */}
+          <TabsContent value="current-affairs">
+            <div className="space-y-4">
+              {/* Category Header */}
+              <Card className="p-4 bg-gradient-to-r from-rose-500 to-orange-500 text-white">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Newspaper className="w-8 h-8" />
+                    <div>
+                      <h2 className="text-xl font-bold">📰 करंट अफेयर्स</h2>
+                      <p className="text-sm opacity-90">Current Affairs - AI Updated Daily</p>
+                      {currentAffairsDate && (
+                        <p className="text-xs opacity-75 mt-1">📅 {currentAffairsDate}</p>
+                      )}
+                    </div>
+                  </div>
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    onClick={fetchCurrentAffairs}
+                    disabled={isLoadingCurrentAffairs}
+                    className="flex items-center gap-2"
+                  >
+                    {isLoadingCurrentAffairs ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                    रिफ्रेश
+                  </Button>
+                </div>
+              </Card>
+
+              {/* Loading State */}
+              {isLoadingCurrentAffairs && currentAffairs.length === 0 && (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center space-y-3">
+                    <Loader2 className="w-10 h-10 animate-spin mx-auto text-primary" />
+                    <p className="text-muted-foreground">AI से करंट अफेयर्स लोड हो रहे हैं...</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Current Affairs Grid */}
+              {currentAffairs.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {currentAffairs.map((fact, index) => (
+                    <Card 
+                      key={index} 
+                      className="p-4 hover:shadow-lg transition-all border-2 hover:border-primary"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium text-muted-foreground">{fact.title}</p>
+                          {fact.category && (
+                            <span className={`text-xs px-2 py-0.5 rounded-full text-white ${getCategoryBadgeColor(fact.category)}`}>
+                              {fact.category}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-base font-bold text-primary">{fact.value}</p>
+                        <p className="text-xs text-muted-foreground">{fact.english}</p>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Other Categories */}
+          {gkCategories.filter(cat => cat.id !== 'current-affairs').map((category) => (
             <TabsContent key={category.id} value={category.id}>
               <div className="space-y-4">
                 {/* Category Header */}
