@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.generate-quiz]
 verify_jwt = true
+
+[functions.get-current-affairs]
+verify_jwt = false
