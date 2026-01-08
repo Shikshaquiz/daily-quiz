@@ -74,6 +74,19 @@ const soundIdentifyData = [
   { word: "गाजर", english: "Carrot", emoji: "🥕", options: ["🥔", "🥕", "🍅", "🧅"] },
 ];
 
+const spellingWords = [
+  { word: "CAT", hint: "🐱 बिल्ली", hindi: "बिल्ली" },
+  { word: "DOG", hint: "🐕 कुत्ता", hindi: "कुत्ता" },
+  { word: "SUN", hint: "☀️ सूरज", hindi: "सूरज" },
+  { word: "BALL", hint: "⚽ गेंद", hindi: "गेंद" },
+  { word: "BOOK", hint: "📚 किताब", hindi: "किताब" },
+  { word: "FISH", hint: "🐟 मछली", hindi: "मछली" },
+  { word: "TREE", hint: "🌳 पेड़", hindi: "पेड़" },
+  { word: "STAR", hint: "⭐ तारा", hindi: "तारा" },
+  { word: "MOON", hint: "🌙 चाँद", hindi: "चाँद" },
+  { word: "BIRD", hint: "🐦 चिड़िया", hindi: "चिड़िया" },
+];
+
 interface MemoryCard {
   id: number;
   content: string;
@@ -109,6 +122,13 @@ const KidsGames = () => {
   const [soundQuestion, setSoundQuestion] = useState(0);
   const [soundScore, setSoundScore] = useState(0);
   const [soundAnswered, setSoundAnswered] = useState(false);
+
+  // Spelling Game State
+  const [spellingIndex, setSpellingIndex] = useState(0);
+  const [spellingInput, setSpellingInput] = useState("");
+  const [spellingScore, setSpellingScore] = useState(0);
+  const [spellingAnswered, setSpellingAnswered] = useState(false);
+  const [spellingCorrect, setSpellingCorrect] = useState<boolean | null>(null);
 
   // Speech function
   const speakText = useCallback((text: string, lang: string = "hi-IN") => {
@@ -318,6 +338,51 @@ const KidsGames = () => {
     }, 1500);
   };
 
+  // Spelling Game Logic
+  const handleSpellingSubmit = () => {
+    if (spellingAnswered || !spellingInput.trim()) return;
+    
+    setSpellingAnswered(true);
+    const isCorrect = spellingInput.trim().toUpperCase() === spellingWords[spellingIndex].word;
+    setSpellingCorrect(isCorrect);
+    
+    if (isCorrect) {
+      setSpellingScore(s => s + 1);
+      toast.success("🎉 सही Spelling!");
+      speakText("बहुत बढ़िया, सही spelling");
+    } else {
+      toast.error(`❌ गलत! सही Spelling: ${spellingWords[spellingIndex].word}`);
+      speakText("गलत, फिर से कोशिश करो");
+    }
+  };
+
+  const nextSpellingWord = () => {
+    if (spellingIndex < spellingWords.length - 1) {
+      setSpellingIndex(i => i + 1);
+      setSpellingInput("");
+      setSpellingAnswered(false);
+      setSpellingCorrect(null);
+    } else {
+      toast.success(`🏆 खेल पूरा! Score: ${spellingScore}/${spellingWords.length}`);
+    }
+  };
+
+  const resetSpellingGame = () => {
+    setSpellingIndex(0);
+    setSpellingInput("");
+    setSpellingScore(0);
+    setSpellingAnswered(false);
+    setSpellingCorrect(null);
+  };
+
+  const speakSpellingHint = () => {
+    const data = spellingWords[spellingIndex];
+    speakText(data.hindi, "hi-IN");
+    setTimeout(() => {
+      speakText(data.word.split('').join(' '), "en-US");
+    }, 1500);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-yellow-100">
       {/* Header */}
@@ -340,18 +405,21 @@ const KidsGames = () => {
 
       <div className="container mx-auto p-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-4 gap-2 h-auto p-2 bg-white/80 backdrop-blur mb-6">
+          <TabsList className="grid grid-cols-5 gap-2 h-auto p-2 bg-white/80 backdrop-blur mb-6">
             <TabsTrigger value="memory" className="text-xs sm:text-sm py-3 data-[state=active]:bg-purple-500 data-[state=active]:text-white">
-              🃏 Memory Match
+              🃏 Memory
             </TabsTrigger>
             <TabsTrigger value="quiz" className="text-xs sm:text-sm py-3 data-[state=active]:bg-green-500 data-[state=active]:text-white">
-              ❓ Quiz Game
+              ❓ Quiz
             </TabsTrigger>
             <TabsTrigger value="sorting" className="text-xs sm:text-sm py-3 data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-              🔢 क्रम लगाओ
+              🔢 क्रम
             </TabsTrigger>
             <TabsTrigger value="sound" className="text-xs sm:text-sm py-3 data-[state=active]:bg-orange-500 data-[state=active]:text-white">
-              🔊 सुनो और पहचानो
+              🔊 सुनो
+            </TabsTrigger>
+            <TabsTrigger value="spelling" className="text-xs sm:text-sm py-3 data-[state=active]:bg-pink-500 data-[state=active]:text-white">
+              ✏️ Spelling
             </TabsTrigger>
           </TabsList>
 
@@ -623,6 +691,98 @@ const KidsGames = () => {
                   {soundQuestion === soundIdentifyData.length - 1 ? "🏆 खेल पूरा!" : "अगला सवाल →"}
                 </Button>
               )}
+            </Card>
+          </TabsContent>
+
+          {/* Spelling Game */}
+          <TabsContent value="spelling">
+            <Card className="p-6 bg-white/90 backdrop-blur max-w-lg mx-auto">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2 bg-pink-100 px-4 py-2 rounded-full">
+                  <Star className="h-5 w-5 text-pink-600" />
+                  <span className="font-bold text-pink-700">Score: {spellingScore}/{spellingWords.length}</span>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Word: {spellingIndex + 1}/{spellingWords.length}
+                </div>
+                <Button size="sm" variant="outline" onClick={resetSpellingGame}>
+                  <RotateCcw className="h-4 w-4 mr-1" /> Reset
+                </Button>
+              </div>
+
+              <div className="text-center mb-8">
+                <p className="text-lg text-muted-foreground mb-4">✏️ इसकी Spelling लिखो</p>
+                
+                <div className="text-6xl mb-4">{spellingWords[spellingIndex].hint.split(' ')[0]}</div>
+                <p className="text-xl font-bold text-pink-600 mb-2">{spellingWords[spellingIndex].hindi}</p>
+                
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={speakSpellingHint}
+                  className="mb-4"
+                >
+                  <Volume2 className="h-4 w-4 mr-1" /> सुनो
+                </Button>
+
+                {spellingAnswered && (
+                  <div className={`p-3 rounded-lg mb-4 ${spellingCorrect ? 'bg-green-100' : 'bg-red-100'}`}>
+                    <p className={`font-bold text-lg ${spellingCorrect ? 'text-green-700' : 'text-red-700'}`}>
+                      {spellingCorrect ? '✅ सही!' : `❌ सही Spelling: ${spellingWords[spellingIndex].word}`}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-2 justify-center mb-4">
+                  <input
+                    type="text"
+                    value={spellingInput}
+                    onChange={(e) => setSpellingInput(e.target.value.toUpperCase())}
+                    disabled={spellingAnswered}
+                    placeholder="यहाँ लिखो..."
+                    className="text-center text-2xl font-bold tracking-widest uppercase border-2 border-pink-300 rounded-xl px-4 py-3 w-48 focus:outline-none focus:border-pink-500"
+                    maxLength={10}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSpellingSubmit()}
+                  />
+                </div>
+
+                <div className="flex gap-2 justify-center flex-wrap mb-4">
+                  {spellingWords[spellingIndex].word.split('').map((letter, i) => (
+                    <div
+                      key={i}
+                      className={`w-10 h-10 flex items-center justify-center text-xl font-bold rounded-lg border-2 ${
+                        spellingAnswered
+                          ? spellingInput[i]?.toUpperCase() === letter
+                            ? 'bg-green-100 border-green-400 text-green-700'
+                            : 'bg-red-100 border-red-400 text-red-700'
+                          : 'bg-gray-100 border-gray-300 text-gray-400'
+                      }`}
+                    >
+                      {spellingAnswered ? letter : (spellingInput[i] || '_')}
+                    </div>
+                  ))}
+                </div>
+
+                {!spellingAnswered && (
+                  <Button 
+                    onClick={handleSpellingSubmit}
+                    disabled={!spellingInput.trim()}
+                    className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
+                  >
+                    ✓ Check Spelling
+                  </Button>
+                )}
+
+                {spellingAnswered && (
+                  <Button 
+                    className="w-full" 
+                    onClick={nextSpellingWord}
+                    disabled={spellingIndex === spellingWords.length - 1}
+                  >
+                    {spellingIndex === spellingWords.length - 1 ? "🏆 खेल पूरा!" : "अगला शब्द →"}
+                  </Button>
+                )}
+              </div>
             </Card>
           </TabsContent>
         </Tabs>
