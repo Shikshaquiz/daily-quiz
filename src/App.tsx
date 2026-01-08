@@ -8,6 +8,7 @@ import Auth from "./pages/Auth";
 import Classes from "./pages/Classes";
 import Quiz from "./pages/Quiz";
 import KidsPlay from "./pages/KidsPlay";
+import KidsGames from "./pages/KidsGames";
 import CompetitiveQuiz from "./pages/CompetitiveQuiz";
 import Profile from "./pages/Profile";
 import GeneralKnowledge from "./pages/GeneralKnowledge";
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/classes" element={<Classes />} />
           <Route path="/quiz/:classNumber" element={<Quiz />} />
           <Route path="/kids-play" element={<KidsPlay />} />
+          <Route path="/kids-games" element={<KidsGames />} />
           <Route path="/competitive/:examId" element={<CompetitiveQuiz />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/general-knowledge" element={<GeneralKnowledge />} />

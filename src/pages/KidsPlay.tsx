@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Volume2 } from "lucide-react";
+import { ArrowLeft, Volume2, Gamepad2 } from "lucide-react";
 
 // Hindi Alphabet Data
 const hindiAlphabet = [
@@ -399,14 +399,24 @@ const KidsPlay = () => {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/classes")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold">🎮 Kids Play</h1>
-            <p className="text-sm text-muted-foreground">सीखें और मज़े करें!</p>
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/classes")}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold">🎮 Kids Play</h1>
+              <p className="text-sm text-muted-foreground">सीखें और मज़े करें!</p>
+            </div>
           </div>
+          <Button 
+            onClick={() => navigate("/kids-games")}
+            className="bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 text-white gap-2"
+          >
+            <Gamepad2 className="h-5 w-5" />
+            <span className="hidden sm:inline">खेलो और सीखो</span>
+            <span className="sm:hidden">🎮</span>
+          </Button>
         </div>
 
         {/* Selected Card Preview */}
