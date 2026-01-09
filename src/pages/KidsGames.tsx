@@ -87,6 +87,29 @@ const spellingWords = [
   { word: "BIRD", hint: "🐦 चिड़िया", hindi: "चिड़िया" },
 ];
 
+// Coloring Game Data
+const coloringShapes = [
+  { id: 1, name: "Circle", hindi: "गोला", emoji: "⭕", path: "M50,10 a40,40 0 1,0 0.1,0 Z" },
+  { id: 2, name: "Square", hindi: "वर्ग", emoji: "⬛", path: "M10,10 L90,10 L90,90 L10,90 Z" },
+  { id: 3, name: "Triangle", hindi: "त्रिभुज", emoji: "🔺", path: "M50,10 L90,90 L10,90 Z" },
+  { id: 4, name: "Heart", hindi: "दिल", emoji: "❤️", path: "M50,85 C20,55 0,35 10,20 C25,0 45,10 50,25 C55,10 75,0 90,20 C100,35 80,55 50,85 Z" },
+  { id: 5, name: "Star", hindi: "तारा", emoji: "⭐", path: "M50,5 L61,35 L95,35 L68,55 L79,90 L50,70 L21,90 L32,55 L5,35 L39,35 Z" },
+  { id: 6, name: "House", hindi: "घर", emoji: "🏠", path: "M50,10 L90,40 L90,90 L10,90 L10,40 Z M35,90 L35,60 L65,60 L65,90" },
+];
+
+const colorPalette = [
+  { color: "#FF6B6B", name: "Red", hindi: "लाल" },
+  { color: "#4ECDC4", name: "Teal", hindi: "फ़िरोज़ा" },
+  { color: "#45B7D1", name: "Blue", hindi: "नीला" },
+  { color: "#96CEB4", name: "Green", hindi: "हरा" },
+  { color: "#FFEAA7", name: "Yellow", hindi: "पीला" },
+  { color: "#DDA0DD", name: "Purple", hindi: "बैंगनी" },
+  { color: "#FF9FF3", name: "Pink", hindi: "गुलाबी" },
+  { color: "#FFA502", name: "Orange", hindi: "नारंगी" },
+  { color: "#A29BFE", name: "Lavender", hindi: "लैवेंडर" },
+  { color: "#FFFFFF", name: "White", hindi: "सफ़ेद" },
+];
+
 interface MemoryCard {
   id: number;
   content: string;
@@ -129,6 +152,11 @@ const KidsGames = () => {
   const [spellingScore, setSpellingScore] = useState(0);
   const [spellingAnswered, setSpellingAnswered] = useState(false);
   const [spellingCorrect, setSpellingCorrect] = useState<boolean | null>(null);
+
+  // Coloring Game State
+  const [selectedColor, setSelectedColor] = useState(colorPalette[0].color);
+  const [coloredShapes, setColoredShapes] = useState<Record<number, string>>({});
+  const [currentShape, setCurrentShape] = useState(0);
 
   // Speech function
   const speakText = useCallback((text: string, lang: string = "hi-IN") => {
@@ -383,6 +411,27 @@ const KidsGames = () => {
     }, 1500);
   };
 
+  // Coloring Game Logic
+  const handleShapeColor = (shapeId: number) => {
+    setColoredShapes(prev => ({ ...prev, [shapeId]: selectedColor }));
+    toast.success(`🎨 ${colorPalette.find(c => c.color === selectedColor)?.hindi || ''} रंग भरा!`);
+    speakText(colorPalette.find(c => c.color === selectedColor)?.hindi || '');
+  };
+
+  const resetColoringGame = () => {
+    setColoredShapes({});
+    setCurrentShape(0);
+    toast.success("🎨 नया Canvas!");
+  };
+
+  const nextColoringShape = () => {
+    setCurrentShape((prev) => (prev + 1) % coloringShapes.length);
+  };
+
+  const prevColoringShape = () => {
+    setCurrentShape((prev) => (prev - 1 + coloringShapes.length) % coloringShapes.length);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-yellow-100">
       {/* Header */}
@@ -405,7 +454,7 @@ const KidsGames = () => {
 
       <div className="container mx-auto p-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-5 gap-2 h-auto p-2 bg-white/80 backdrop-blur mb-6">
+          <TabsList className="grid grid-cols-6 gap-2 h-auto p-2 bg-white/80 backdrop-blur mb-6">
             <TabsTrigger value="memory" className="text-xs sm:text-sm py-3 data-[state=active]:bg-purple-500 data-[state=active]:text-white">
               🃏 Memory
             </TabsTrigger>
@@ -420,6 +469,9 @@ const KidsGames = () => {
             </TabsTrigger>
             <TabsTrigger value="spelling" className="text-xs sm:text-sm py-3 data-[state=active]:bg-pink-500 data-[state=active]:text-white">
               ✏️ Spelling
+            </TabsTrigger>
+            <TabsTrigger value="coloring" className="text-xs sm:text-sm py-3 data-[state=active]:bg-red-500 data-[state=active]:text-white">
+              🎨 Color
             </TabsTrigger>
           </TabsList>
 
@@ -782,6 +834,119 @@ const KidsGames = () => {
                     {spellingIndex === spellingWords.length - 1 ? "🏆 खेल पूरा!" : "अगला शब्द →"}
                   </Button>
                 )}
+              </div>
+            </Card>
+          </TabsContent>
+
+          {/* Coloring Game */}
+          <TabsContent value="coloring">
+            <Card className="p-6 bg-white/90 backdrop-blur max-w-2xl mx-auto">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{coloringShapes[currentShape].emoji}</span>
+                  <div>
+                    <h3 className="font-bold text-lg">{coloringShapes[currentShape].name}</h3>
+                    <p className="text-sm text-muted-foreground">{coloringShapes[currentShape].hindi}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={prevColoringShape}>
+                    ← पिछला
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={nextColoringShape}>
+                    अगला →
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={resetColoringGame}>
+                    <RotateCcw className="h-4 w-4 mr-1" /> Clear
+                  </Button>
+                </div>
+              </div>
+
+              <p className="text-center text-lg text-muted-foreground mb-4">
+                🎨 रंग चुनो और shape पर click करो!
+              </p>
+
+              {/* Color Palette */}
+              <div className="flex flex-wrap justify-center gap-2 mb-6">
+                {colorPalette.map((color) => (
+                  <button
+                    key={color.color}
+                    onClick={() => {
+                      setSelectedColor(color.color);
+                      speakText(color.hindi);
+                    }}
+                    className={`w-10 h-10 rounded-full border-4 transition-all hover:scale-110 ${
+                      selectedColor === color.color 
+                        ? 'border-gray-800 scale-110 shadow-lg' 
+                        : 'border-gray-300'
+                    }`}
+                    style={{ backgroundColor: color.color }}
+                    title={`${color.name} (${color.hindi})`}
+                  />
+                ))}
+              </div>
+
+              {/* Selected Color Display */}
+              <div className="text-center mb-4">
+                <span className="text-sm text-muted-foreground">चुना हुआ रंग: </span>
+                <span 
+                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full font-bold"
+                  style={{ backgroundColor: selectedColor, color: selectedColor === '#FFFFFF' ? '#000' : '#FFF' }}
+                >
+                  {colorPalette.find(c => c.color === selectedColor)?.hindi}
+                </span>
+              </div>
+
+              {/* Canvas Area */}
+              <div className="flex justify-center mb-6">
+                <svg
+                  viewBox="0 0 100 100"
+                  className="w-64 h-64 cursor-pointer transition-transform hover:scale-105"
+                  onClick={() => handleShapeColor(coloringShapes[currentShape].id)}
+                >
+                  <path
+                    d={coloringShapes[currentShape].path}
+                    fill={coloredShapes[coloringShapes[currentShape].id] || '#E5E7EB'}
+                    stroke="#374151"
+                    strokeWidth="2"
+                    className="transition-all duration-300"
+                  />
+                </svg>
+              </div>
+
+              {/* Shape Grid */}
+              <div className="border-t pt-4">
+                <p className="text-center text-sm text-muted-foreground mb-3">सभी Shapes:</p>
+                <div className="grid grid-cols-6 gap-2">
+                  {coloringShapes.map((shape, index) => (
+                    <button
+                      key={shape.id}
+                      onClick={() => setCurrentShape(index)}
+                      className={`p-2 rounded-lg border-2 transition-all ${
+                        currentShape === index 
+                          ? 'border-red-500 bg-red-50' 
+                          : 'border-gray-200 hover:border-gray-400'
+                      }`}
+                    >
+                      <svg viewBox="0 0 100 100" className="w-full h-10">
+                        <path
+                          d={shape.path}
+                          fill={coloredShapes[shape.id] || '#E5E7EB'}
+                          stroke="#374151"
+                          strokeWidth="3"
+                        />
+                      </svg>
+                      <p className="text-xs text-center mt-1 truncate">{shape.hindi}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Fun Tips */}
+              <div className="mt-4 p-3 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg">
+                <p className="text-sm text-center text-orange-700">
+                  💡 Tip: हर shape को अलग-अलग रंग दो और एक beautiful picture बनाओ!
+                </p>
               </div>
             </Card>
           </TabsContent>
