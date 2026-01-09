@@ -2,44 +2,66 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, RotateCcw, Volume2, Trophy, Star, Sparkles } from "lucide-react";
+import { ArrowLeft, RotateCcw, Volume2, Trophy, Star, Sparkles, Clock, Eye, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 // Game Data
 const memoryGameData = {
-  alphabets: [
-    { id: 1, hindi: "अ", english: "A", word: "आम", emoji: "🥭" },
-    { id: 2, hindi: "आ", english: "B", word: "बिल्ली", emoji: "🐱" },
-    { id: 3, hindi: "इ", english: "C", word: "चिड़िया", emoji: "🐦" },
-    { id: 4, hindi: "ई", english: "D", word: "डोल", emoji: "🪣" },
-    { id: 5, hindi: "उ", english: "E", word: "उल्लू", emoji: "🦉" },
-    { id: 6, hindi: "ऊ", english: "F", word: "फूल", emoji: "🌸" },
-  ],
-  numbers: [
-    { id: 1, number: "1", hindi: "एक", emoji: "1️⃣" },
-    { id: 2, number: "2", hindi: "दो", emoji: "2️⃣" },
-    { id: 3, number: "3", hindi: "तीन", emoji: "3️⃣" },
-    { id: 4, number: "4", hindi: "चार", emoji: "4️⃣" },
-    { id: 5, number: "5", hindi: "पाँच", emoji: "5️⃣" },
-    { id: 6, number: "6", hindi: "छह", emoji: "6️⃣" },
-  ],
-  fruits: [
-    { id: 1, hindi: "सेब", english: "Apple", emoji: "🍎" },
-    { id: 2, hindi: "केला", english: "Banana", emoji: "🍌" },
-    { id: 3, hindi: "अंगूर", english: "Grapes", emoji: "🍇" },
-    { id: 4, hindi: "आम", english: "Mango", emoji: "🥭" },
-    { id: 5, hindi: "संतरा", english: "Orange", emoji: "🍊" },
-    { id: 6, hindi: "तरबूज", english: "Watermelon", emoji: "🍉" },
-  ],
-  animals: [
-    { id: 1, hindi: "शेर", english: "Lion", emoji: "🦁" },
-    { id: 2, hindi: "हाथी", english: "Elephant", emoji: "🐘" },
-    { id: 3, hindi: "बंदर", english: "Monkey", emoji: "🐵" },
-    { id: 4, hindi: "गाय", english: "Cow", emoji: "🐄" },
-    { id: 5, hindi: "कुत्ता", english: "Dog", emoji: "🐕" },
-    { id: 6, hindi: "बिल्ली", english: "Cat", emoji: "🐱" },
-  ],
+  easy: {
+    fruits: [
+      { id: 1, hindi: "सेब", english: "Apple", emoji: "🍎" },
+      { id: 2, hindi: "केला", english: "Banana", emoji: "🍌" },
+      { id: 3, hindi: "अंगूर", english: "Grapes", emoji: "🍇" },
+      { id: 4, hindi: "आम", english: "Mango", emoji: "🥭" },
+    ],
+    animals: [
+      { id: 1, hindi: "शेर", english: "Lion", emoji: "🦁" },
+      { id: 2, hindi: "हाथी", english: "Elephant", emoji: "🐘" },
+      { id: 3, hindi: "बंदर", english: "Monkey", emoji: "🐵" },
+      { id: 4, hindi: "गाय", english: "Cow", emoji: "🐄" },
+    ],
+  },
+  medium: {
+    fruits: [
+      { id: 1, hindi: "सेब", english: "Apple", emoji: "🍎" },
+      { id: 2, hindi: "केला", english: "Banana", emoji: "🍌" },
+      { id: 3, hindi: "अंगूर", english: "Grapes", emoji: "🍇" },
+      { id: 4, hindi: "आम", english: "Mango", emoji: "🥭" },
+      { id: 5, hindi: "संतरा", english: "Orange", emoji: "🍊" },
+      { id: 6, hindi: "तरबूज", english: "Watermelon", emoji: "🍉" },
+    ],
+    animals: [
+      { id: 1, hindi: "शेर", english: "Lion", emoji: "🦁" },
+      { id: 2, hindi: "हाथी", english: "Elephant", emoji: "🐘" },
+      { id: 3, hindi: "बंदर", english: "Monkey", emoji: "🐵" },
+      { id: 4, hindi: "गाय", english: "Cow", emoji: "🐄" },
+      { id: 5, hindi: "कुत्ता", english: "Dog", emoji: "🐕" },
+      { id: 6, hindi: "बिल्ली", english: "Cat", emoji: "🐱" },
+    ],
+  },
+  hard: {
+    fruits: [
+      { id: 1, hindi: "सेब", english: "Apple", emoji: "🍎" },
+      { id: 2, hindi: "केला", english: "Banana", emoji: "🍌" },
+      { id: 3, hindi: "अंगूर", english: "Grapes", emoji: "🍇" },
+      { id: 4, hindi: "आम", english: "Mango", emoji: "🥭" },
+      { id: 5, hindi: "संतरा", english: "Orange", emoji: "🍊" },
+      { id: 6, hindi: "तरबूज", english: "Watermelon", emoji: "🍉" },
+      { id: 7, hindi: "अनानास", english: "Pineapple", emoji: "🍍" },
+      { id: 8, hindi: "चेरी", english: "Cherry", emoji: "🍒" },
+    ],
+    animals: [
+      { id: 1, hindi: "शेर", english: "Lion", emoji: "🦁" },
+      { id: 2, hindi: "हाथी", english: "Elephant", emoji: "🐘" },
+      { id: 3, hindi: "बंदर", english: "Monkey", emoji: "🐵" },
+      { id: 4, hindi: "गाय", english: "Cow", emoji: "🐄" },
+      { id: 5, hindi: "कुत्ता", english: "Dog", emoji: "🐕" },
+      { id: 6, hindi: "बिल्ली", english: "Cat", emoji: "🐱" },
+      { id: 7, hindi: "खरगोश", english: "Rabbit", emoji: "🐰" },
+      { id: 8, hindi: "भालू", english: "Bear", emoji: "🐻" },
+    ],
+  },
 };
 
 const quizQuestions = [
@@ -129,6 +151,12 @@ const KidsGames = () => {
   const [matchedPairs, setMatchedPairs] = useState(0);
   const [memoryMoves, setMemoryMoves] = useState(0);
   const [memoryCategory, setMemoryCategory] = useState<"fruits" | "animals">("fruits");
+  const [memoryDifficulty, setMemoryDifficulty] = useState<"easy" | "medium" | "hard">("easy");
+  const [memoryTimer, setMemoryTimer] = useState(0);
+  const [memoryTimerRunning, setMemoryTimerRunning] = useState(false);
+  const [memoryStars, setMemoryStars] = useState(0);
+  const [memoryGameComplete, setMemoryGameComplete] = useState(false);
+  const [showMemoryHint, setShowMemoryHint] = useState(false);
   
   // Quiz Game State
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -171,7 +199,7 @@ const KidsGames = () => {
 
   // Initialize Memory Game
   const initMemoryGame = useCallback(() => {
-    const data = memoryGameData[memoryCategory];
+    const data = memoryGameData[memoryDifficulty][memoryCategory];
     const cards: MemoryCard[] = [];
     
     data.forEach((item, index) => {
@@ -199,7 +227,56 @@ const KidsGames = () => {
     setFlippedCards([]);
     setMatchedPairs(0);
     setMemoryMoves(0);
-  }, [memoryCategory]);
+    setMemoryTimer(0);
+    setMemoryTimerRunning(false);
+    setMemoryStars(0);
+    setMemoryGameComplete(false);
+  }, [memoryCategory, memoryDifficulty]);
+
+  // Timer effect for memory game
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (memoryTimerRunning && !memoryGameComplete) {
+      interval = setInterval(() => {
+        setMemoryTimer(t => t + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [memoryTimerRunning, memoryGameComplete]);
+
+  // Check for game completion and calculate stars
+  useEffect(() => {
+    const totalPairs = memoryGameData[memoryDifficulty][memoryCategory].length;
+    if (matchedPairs === totalPairs && totalPairs > 0 && memoryTimerRunning) {
+      setMemoryGameComplete(true);
+      setMemoryTimerRunning(false);
+      
+      // Calculate stars based on moves
+      const perfectMoves = totalPairs;
+      const goodMoves = totalPairs * 1.5;
+      
+      let stars = 1;
+      if (memoryMoves <= perfectMoves) {
+        stars = 3;
+      } else if (memoryMoves <= goodMoves) {
+        stars = 2;
+      }
+      setMemoryStars(stars);
+      
+      toast.success(`🎉 बहुत बढ़िया! ${stars} ⭐ मिले!`);
+      speakText("बहुत बढ़िया! तुम जीत गए!");
+    }
+  }, [matchedPairs, memoryDifficulty, memoryCategory, memoryMoves, memoryTimerRunning, speakText]);
+
+  // Show hint function
+  const showHint = useCallback(() => {
+    setShowMemoryHint(true);
+    setMemoryCards(cards => cards.map(c => ({ ...c, isFlipped: true })));
+    setTimeout(() => {
+      setMemoryCards(cards => cards.map(c => c.isMatched ? c : { ...c, isFlipped: false }));
+      setShowMemoryHint(false);
+    }, 2000);
+  }, []);
 
   // Initialize Sorting Game
   const initSortingGame = useCallback(() => {
@@ -224,10 +301,18 @@ const KidsGames = () => {
 
   // Memory Game Logic
   const handleCardClick = (cardId: number) => {
-    if (flippedCards.length === 2) return;
+    if (flippedCards.length === 2 || showMemoryHint) return;
+    
+    // Start timer on first click
+    if (!memoryTimerRunning && memoryTimer === 0) {
+      setMemoryTimerRunning(true);
+    }
     
     const card = memoryCards.find(c => c.id === cardId);
     if (!card || card.isFlipped || card.isMatched) return;
+    
+    // Play flip sound effect
+    speakText(card.type === "emoji" ? "" : card.content, "hi-IN");
     
     const newCards = memoryCards.map(c => 
       c.id === cardId ? { ...c, isFlipped: true } : c
@@ -251,9 +336,8 @@ const KidsGames = () => {
           ));
           setMatchedPairs(m => m + 1);
           setFlippedCards([]);
-          toast.success("🎉 बहुत बढ़िया! Match हो गया!");
-          speakText("बहुत बढ़िया");
-        }, 500);
+          toast.success("🎉 Match!");
+        }, 400);
       } else {
         // No match
         setTimeout(() => {
@@ -261,9 +345,23 @@ const KidsGames = () => {
             newFlipped.includes(c.id) ? { ...c, isFlipped: false } : c
           ));
           setFlippedCards([]);
-        }, 1000);
+        }, 800);
       }
     }
+  };
+
+  // Format timer
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Get grid columns based on difficulty
+  const getGridCols = () => {
+    if (memoryDifficulty === "easy") return "grid-cols-4";
+    if (memoryDifficulty === "medium") return "grid-cols-4";
+    return "grid-cols-4 sm:grid-cols-4";
   };
 
   // Quiz Game Logic
@@ -478,62 +576,161 @@ const KidsGames = () => {
           {/* Memory Match Game */}
           <TabsContent value="memory">
             <Card className="p-6 bg-white/90 backdrop-blur">
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant={memoryCategory === "fruits" ? "default" : "outline"}
-                      onClick={() => setMemoryCategory("fruits")}
-                    >
-                      🍎 फल
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={memoryCategory === "animals" ? "default" : "outline"}
-                      onClick={() => setMemoryCategory("animals")}
-                    >
-                      🦁 जानवर
-                    </Button>
-                  </div>
+              {/* Difficulty Selection */}
+              <div className="flex flex-wrap items-center justify-center gap-3 mb-6 p-4 bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl">
+                <span className="font-bold text-purple-700">Level:</span>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant={memoryDifficulty === "easy" ? "default" : "outline"}
+                    onClick={() => setMemoryDifficulty("easy")}
+                    className={memoryDifficulty === "easy" ? "bg-green-500 hover:bg-green-600" : ""}
+                  >
+                    <Zap className="h-4 w-4 mr-1" /> आसान
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={memoryDifficulty === "medium" ? "default" : "outline"}
+                    onClick={() => setMemoryDifficulty("medium")}
+                    className={memoryDifficulty === "medium" ? "bg-yellow-500 hover:bg-yellow-600" : ""}
+                  >
+                    ⚡ मध्यम
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={memoryDifficulty === "hard" ? "default" : "outline"}
+                    onClick={() => setMemoryDifficulty("hard")}
+                    className={memoryDifficulty === "hard" ? "bg-red-500 hover:bg-red-600" : ""}
+                  >
+                    🔥 कठिन
+                  </Button>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 bg-purple-100 px-3 py-1 rounded-full">
+              </div>
+
+              {/* Category & Stats Row */}
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant={memoryCategory === "fruits" ? "default" : "outline"}
+                    onClick={() => setMemoryCategory("fruits")}
+                  >
+                    🍎 फल
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={memoryCategory === "animals" ? "default" : "outline"}
+                    onClick={() => setMemoryCategory("animals")}
+                  >
+                    🦁 जानवर
+                  </Button>
+                </div>
+                
+                <div className="flex items-center gap-3 flex-wrap">
+                  {/* Timer */}
+                  <div className="flex items-center gap-2 bg-orange-100 px-3 py-1.5 rounded-full">
+                    <Clock className="h-4 w-4 text-orange-600" />
+                    <span className="font-mono font-bold text-orange-700">{formatTime(memoryTimer)}</span>
+                  </div>
+                  
+                  {/* Progress */}
+                  <div className="flex items-center gap-2 bg-purple-100 px-3 py-1.5 rounded-full">
                     <Trophy className="h-4 w-4 text-purple-600" />
-                    <span className="font-bold text-purple-700">{matchedPairs}/{memoryGameData[memoryCategory].length}</span>
+                    <span className="font-bold text-purple-700">{matchedPairs}/{memoryGameData[memoryDifficulty][memoryCategory].length}</span>
                   </div>
-                  <div className="flex items-center gap-2 bg-blue-100 px-3 py-1 rounded-full">
-                    <span className="text-sm text-blue-700">Moves: {memoryMoves}</span>
+                  
+                  {/* Moves */}
+                  <div className="flex items-center gap-2 bg-blue-100 px-3 py-1.5 rounded-full">
+                    <span className="text-sm font-bold text-blue-700">👆 {memoryMoves}</span>
                   </div>
+                  
+                  {/* Hint Button */}
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={showHint}
+                    disabled={showMemoryHint || memoryGameComplete}
+                    className="border-yellow-400 text-yellow-600 hover:bg-yellow-50"
+                  >
+                    <Eye className="h-4 w-4 mr-1" /> Hint
+                  </Button>
+                  
+                  {/* Reset */}
                   <Button size="sm" variant="outline" onClick={initMemoryGame}>
                     <RotateCcw className="h-4 w-4 mr-1" /> Reset
                   </Button>
                 </div>
               </div>
 
-              {matchedPairs === memoryGameData[memoryCategory].length && (
-                <div className="text-center p-6 bg-gradient-to-r from-yellow-200 to-orange-200 rounded-xl mb-6 animate-pulse">
-                  <h3 className="text-2xl font-bold text-orange-700">🎉 बहुत बढ़िया! आपने जीत लिया!</h3>
-                  <p className="text-orange-600">कुल {memoryMoves} moves में पूरा किया</p>
+              {/* Win Screen */}
+              {memoryGameComplete && (
+                <div className="text-center p-8 bg-gradient-to-r from-yellow-200 via-orange-200 to-pink-200 rounded-2xl mb-6 animate-pulse shadow-xl">
+                  <h3 className="text-3xl font-bold text-orange-700 mb-4">🎉 बहुत बढ़िया!</h3>
+                  <div className="flex justify-center gap-2 mb-4">
+                    {[1, 2, 3].map((star) => (
+                      <span 
+                        key={star} 
+                        className={`text-5xl ${star <= memoryStars ? 'animate-bounce' : 'opacity-30'}`}
+                        style={{ animationDelay: `${star * 0.1}s` }}
+                      >
+                        ⭐
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-lg text-orange-600 mb-2">
+                    ⏱️ समय: {formatTime(memoryTimer)} | 👆 Moves: {memoryMoves}
+                  </p>
+                  <p className="text-sm text-orange-500">
+                    {memoryStars === 3 ? "Perfect! 🏆" : memoryStars === 2 ? "Great job! 👍" : "Keep practicing! 💪"}
+                  </p>
+                  <Button onClick={initMemoryGame} className="mt-4 bg-gradient-to-r from-green-500 to-teal-500">
+                    🔄 फिर से खेलो
+                  </Button>
                 </div>
               )}
 
-              <div className="grid grid-cols-4 gap-3 max-w-md mx-auto">
+              {/* Cards Grid */}
+              <div className={`grid ${getGridCols()} gap-3 max-w-2xl mx-auto`}>
                 {memoryCards.map((card) => (
                   <button
                     key={card.id}
                     onClick={() => handleCardClick(card.id)}
-                    disabled={card.isMatched}
-                    className={`aspect-square rounded-xl text-2xl font-bold transition-all duration-300 transform ${
-                      card.isFlipped || card.isMatched
-                        ? "bg-gradient-to-br from-purple-400 to-pink-400 text-white rotate-0 scale-100"
-                        : "bg-gradient-to-br from-blue-400 to-purple-500 text-white hover:scale-105"
-                    } ${card.isMatched ? "opacity-60 scale-95" : "shadow-lg hover:shadow-xl"}`}
+                    disabled={card.isMatched || memoryGameComplete}
+                    className={`
+                      aspect-square rounded-2xl text-3xl sm:text-4xl font-bold 
+                      transition-all duration-500 transform perspective-1000
+                      ${card.isFlipped || card.isMatched
+                        ? "bg-gradient-to-br from-purple-400 via-pink-400 to-rose-400 text-white scale-100 shadow-xl"
+                        : "bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white hover:scale-105 hover:shadow-2xl"
+                      }
+                      ${card.isMatched 
+                        ? "opacity-70 scale-90 ring-4 ring-green-400 ring-opacity-50" 
+                        : "shadow-lg cursor-pointer active:scale-95"
+                      }
+                      ${showMemoryHint && !card.isMatched ? "animate-pulse" : ""}
+                    `}
+                    style={{
+                      transform: card.isFlipped || card.isMatched ? 'rotateY(0deg)' : 'rotateY(0deg)',
+                    }}
                   >
-                    {card.isFlipped || card.isMatched ? card.content : "?"}
+                    <span className={`block transition-all duration-300 ${card.isFlipped || card.isMatched ? 'scale-100' : 'scale-110'}`}>
+                      {card.isFlipped || card.isMatched ? card.content : "❓"}
+                    </span>
                   </button>
                 ))}
               </div>
+
+              {/* Instructions */}
+              {!memoryTimerRunning && !memoryGameComplete && memoryTimer === 0 && (
+                <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl text-center">
+                  <p className="text-lg text-purple-700 font-medium">
+                    👆 किसी card पर click करो खेल शुरू करने के लिए!
+                  </p>
+                  <p className="text-sm text-purple-500 mt-1">
+                    Emoji और उसके Hindi नाम को match करो
+                  </p>
+                </div>
+              )}
             </Card>
           </TabsContent>
 
