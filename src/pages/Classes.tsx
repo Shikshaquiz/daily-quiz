@@ -4,8 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { GraduationCap, LogOut, Trophy, Gamepad2, Award, Building2, BookOpen } from "lucide-react";
+import { GraduationCap, LogOut, Trophy, Gamepad2, Award, Building2, BookOpen, X } from "lucide-react";
 import BannerAd from "@/components/ads/BannerAd";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const competitiveExams = [
   { id: "navodaya", name: "नवोदय", emoji: "🏫", description: "जवाहर नवोदय विद्यालय" },
@@ -15,9 +21,16 @@ const competitiveExams = [
   { id: "bpsc", name: "BPSC", emoji: "📋", description: "बिहार लोक सेवा आयोग" },
 ];
 
+const boardOptions = [
+  { id: "ncert", name: "NCERT", emoji: "📘", description: "राष्ट्रीय पाठ्यक्रम" },
+  { id: "bihar", name: "Bihar Board", emoji: "📗", description: "बिहार बोर्ड पाठ्यक्रम" },
+];
+
 const Classes = () => {
   const [loading, setLoading] = useState(true);
   const [credits, setCredits] = useState(0);
+  const [showBoardDialog, setShowBoardDialog] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<number | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -58,7 +71,16 @@ const Classes = () => {
   };
 
   const handleClassSelect = (classNumber: number) => {
-    navigate(`/quiz/${classNumber}`);
+    setSelectedClass(classNumber);
+    setShowBoardDialog(true);
+  };
+
+  const handleBoardSelect = (boardId: string) => {
+    if (selectedClass !== null) {
+      navigate(`/quiz/${selectedClass}/${boardId}`);
+      setShowBoardDialog(false);
+      setSelectedClass(null);
+    }
   };
 
   const handleCompetitiveExam = (examId: string) => {
@@ -237,6 +259,36 @@ const Classes = () => {
             <p className="text-xs md:text-sm opacity-90">सभी विषय</p>
           </Card>
         </div>
+
+        {/* Board Selection Dialog */}
+        <Dialog open={showBoardDialog} onOpenChange={setShowBoardDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-center text-xl">
+                📚 कक्षा {selectedClass} - बोर्ड चुनें
+              </DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              {boardOptions.map((board) => (
+                <Card
+                  key={board.id}
+                  className="p-6 hover:shadow-lg transition-all cursor-pointer group hover:scale-105 border-2 hover:border-primary"
+                  onClick={() => handleBoardSelect(board.id)}
+                >
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <span className="text-3xl">{board.emoji}</span>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-bold text-lg">{board.name}</p>
+                      <p className="text-xs text-muted-foreground">{board.description}</p>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

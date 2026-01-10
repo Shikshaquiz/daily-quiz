@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { classNumber, examType } = await req.json();
+    const { classNumber, examType, boardType } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -79,15 +79,36 @@ serve(async (req) => {
       userMessage = `${exam.name} परीक्षा के लिए ${randomSubject} विषय पर एक नया MCQ प्रश्न बनाएं।`;
 
     } else if (classNumber) {
-      // Class-based Questions
-      const subjects = ['गणित', 'विज्ञान', 'सामाजिक विज्ञान', 'हिंदी', 'अंग्रेज़ी'];
+      // Class-based Questions with Board Support
+      const board = boardType || 'ncert';
+      const boardName = board === 'bihar' ? 'बिहार बोर्ड (BSEB)' : 'NCERT';
+      const boardDescription = board === 'bihar' 
+        ? 'बिहार विद्यालय परीक्षा समिति (Bihar School Examination Board - BSEB) के पाठ्यक्रम'
+        : 'NCERT (राष्ट्रीय शैक्षिक अनुसंधान और प्रशिक्षण परिषद) के पाठ्यक्रम';
+      
+      const subjects = board === 'bihar' 
+        ? ['गणित', 'विज्ञान', 'सामाजिक विज्ञान', 'हिंदी', 'संस्कृत']
+        : ['गणित', 'विज्ञान', 'सामाजिक विज्ञान', 'हिंदी', 'अंग्रेज़ी'];
+      
       const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
 
-      console.log(`Generating quiz for class ${classNumber}, subject: ${randomSubject}`);
+      console.log(`Generating quiz for class ${classNumber}, board: ${board}, subject: ${randomSubject}`);
 
       systemPrompt = `आप एक शैक्षिक सहायक हैं जो कक्षा ${classNumber} के लिए ${randomSubject} विषय पर बहुविकल्पीय प्रश्न (MCQ) बनाते हैं। 
     
-प्रश्न NCERT पाठ्यक्रम के अनुसार होना चाहिए और छात्र की कक्षा ${classNumber} के स्तर के अनुरूप होना चाहिए।
+प्रश्न ${boardDescription} के अनुसार होना चाहिए और छात्र की कक्षा ${classNumber} के स्तर के अनुरूप होना चाहिए।
+
+${board === 'bihar' ? `
+बिहार बोर्ड के लिए विशेष निर्देश:
+- प्रश्न BSEB (बिहार बोर्ड) की पाठ्यपुस्तकों से संबंधित होने चाहिए
+- बिहार राज्य से संबंधित उदाहरण और संदर्भ का उपयोग करें जहां उचित हो
+- पाठ्यक्रम बिहार बोर्ड के syllabus के अनुसार हो
+` : `
+NCERT के लिए विशेष निर्देश:
+- प्रश्न NCERT की पाठ्यपुस्तकों से संबंधित होने चाहिए
+- राष्ट्रीय स्तर के उदाहरण और संदर्भ का उपयोग करें
+- पाठ्यक्रम NCERT syllabus के अनुसार हो
+`}
 
 आपको JSON format में एक MCQ प्रश्न return करना है:
 {
@@ -100,7 +121,7 @@ serve(async (req) => {
 
 प्रश्न हिंदी में होना चाहिए और छात्रों के लिए शैक्षिक और रोचक होना चाहिए।`;
 
-      userMessage = `कक्षा ${classNumber} के लिए ${randomSubject} विषय पर एक नया MCQ प्रश्न बनाएं।`;
+      userMessage = `${boardName} पाठ्यक्रम के अनुसार कक्षा ${classNumber} के लिए ${randomSubject} विषय पर एक नया MCQ प्रश्न बनाएं।`;
     } else {
       throw new Error('Either classNumber or examType is required');
     }
