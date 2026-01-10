@@ -16,8 +16,13 @@ interface QuizQuestion {
   explanation: string;
 }
 
+const boardNames: Record<string, string> = {
+  ncert: "NCERT",
+  bihar: "Bihar Board"
+};
+
 const Quiz = () => {
-  const { classNumber } = useParams();
+  const { classNumber, boardType } = useParams();
   const [loading, setLoading] = useState(true);
   const [questionLoading, setQuestionLoading] = useState(false);
   const [question, setQuestion] = useState<QuizQuestion | null>(null);
@@ -28,6 +33,9 @@ const Quiz = () => {
   const [showAd, setShowAd] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const currentBoard = boardType || "ncert";
+  const boardDisplayName = boardNames[currentBoard] || "NCERT";
 
   useEffect(() => {
     checkAuth();
@@ -63,7 +71,10 @@ const Quiz = () => {
     setQuestionLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-quiz', {
-        body: { classNumber: parseInt(classNumber || "1") }
+        body: { 
+          classNumber: parseInt(classNumber || "1"),
+          boardType: currentBoard
+        }
       });
 
       if (error) throw error;
@@ -197,9 +208,12 @@ const Quiz = () => {
         {/* Question Card */}
         <Card className="p-4 md:p-8 mb-6 shadow-lg">
           <div className="mb-4">
-            <div className="flex items-center gap-2 mb-3 md:mb-4">
+            <div className="flex items-center gap-2 mb-3 md:mb-4 flex-wrap">
               <span className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs md:text-sm font-medium">
                 कक्षा {classNumber}
+              </span>
+              <span className="px-2 py-1 bg-secondary/10 text-secondary-foreground rounded-full text-xs md:text-sm font-medium">
+                {boardDisplayName}
               </span>
               <span className="px-2 py-1 bg-accent/10 text-accent rounded-full text-xs md:text-sm font-medium">
                 {question.subject}
