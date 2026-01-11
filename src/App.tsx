@@ -12,6 +12,7 @@ import KidsGames from "./pages/KidsGames";
 import CompetitiveQuiz from "./pages/CompetitiveQuiz";
 import Profile from "./pages/Profile";
 import GeneralKnowledge from "./pages/GeneralKnowledge";
+import AdminPanel from "./pages/AdminPanel";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/competitive/:examId" element={<CompetitiveQuiz />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/general-knowledge" element={<GeneralKnowledge />} />
+          <Route path="/admin" element={<AdminPanel />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
