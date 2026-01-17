@@ -376,13 +376,24 @@ const Index = () => {
 
 
       {/* Kids Play Button */}
-      <div className="mx-4 mt-4 mb-8">
+      <div className="mx-4 mt-4">
         <Button
           onClick={() => navigate("/kids-play")}
           className="w-full py-6 text-lg"
           variant="outline"
         >
           🎮 Kids Play - बच्चों के लिए
+        </Button>
+      </div>
+
+      {/* Admin Panel Button */}
+      <div className="mx-4 mt-4 mb-8">
+        <Button
+          onClick={() => navigate("/admin")}
+          className="w-full py-4 text-lg"
+          variant="secondary"
+        >
+          ⚙️ Admin Panel
         </Button>
       </div>
     </div>
