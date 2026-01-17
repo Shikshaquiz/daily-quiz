@@ -14,6 +14,138 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_chapters: {
+        Row: {
+          chapter_number: number
+          created_at: string
+          id: string
+          name: string
+          name_hindi: string
+          pdf_url: string | null
+          subject_id: string
+        }
+        Insert: {
+          chapter_number: number
+          created_at?: string
+          id?: string
+          name: string
+          name_hindi: string
+          pdf_url?: string | null
+          subject_id: string
+        }
+        Update: {
+          chapter_number?: number
+          created_at?: string
+          id?: string
+          name?: string
+          name_hindi?: string
+          pdf_url?: string | null
+          subject_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_chapters_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "admin_subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_classes: {
+        Row: {
+          board_type: string
+          class_number: number
+          created_at: string
+          id: string
+        }
+        Insert: {
+          board_type?: string
+          class_number: number
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          board_type?: string
+          class_number?: number
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      admin_subjects: {
+        Row: {
+          class_id: string
+          created_at: string
+          emoji: string
+          id: string
+          name: string
+          name_hindi: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          emoji?: string
+          id?: string
+          name: string
+          name_hindi: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          emoji?: string
+          id?: string
+          name?: string
+          name_hindi?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_subjects_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "admin_classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chapter_questions: {
+        Row: {
+          chapter_id: string
+          correct_answer: string
+          created_at: string
+          difficulty: string
+          id: string
+          options: Json
+          question: string
+        }
+        Insert: {
+          chapter_id: string
+          correct_answer: string
+          created_at?: string
+          difficulty?: string
+          id?: string
+          options?: Json
+          question: string
+        }
+        Update: {
+          chapter_id?: string
+          correct_answer?: string
+          created_at?: string
+          difficulty?: string
+          id?: string
+          options?: Json
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chapter_questions_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "admin_chapters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       otp_codes: {
         Row: {
           created_at: string
