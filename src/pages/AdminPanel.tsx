@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Edit, Trash2, BookOpen, GraduationCap, FileText, HelpCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, BookOpen, GraduationCap, FileText, HelpCircle, Loader2, Upload, Sparkles, Eye } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 interface AdminClass {
   id: string;
@@ -34,6 +35,7 @@ interface AdminChapter {
   chapter_number: number;
   name: string;
   name_hindi: string;
+  pdf_url?: string | null;
   created_at: string;
 }
 
@@ -45,6 +47,13 @@ interface ChapterQuestion {
   correct_answer: string;
   difficulty: string;
   created_at: string;
+}
+
+interface GeneratedQuestion {
+  question: string;
+  options: string[];
+  correct_answer: string;
+  difficulty: string;
 }
 
 const AdminPanel = () => {
@@ -82,6 +91,9 @@ const AdminPanel = () => {
   const [chapterName, setChapterName] = useState("");
   const [chapterNameHindi, setChapterNameHindi] = useState("");
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
   
   // Form states for Questions
   const [selectedChapterId, setSelectedChapterId] = useState("");
@@ -92,6 +104,14 @@ const AdminPanel = () => {
   const [option4, setOption4] = useState("");
   const [correctAnswer, setCorrectAnswer] = useState("");
   const [difficulty, setDifficulty] = useState("medium");
+  
+  // AI Generation states
+  const [generatingQuestions, setGeneratingQuestions] = useState(false);
+  const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedQuestion[]>([]);
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [selectedAiChapterId, setSelectedAiChapterId] = useState("");
+  const [numQuestionsToGenerate, setNumQuestionsToGenerate] = useState("10");
+  const [generationProgress, setGenerationProgress] = useState(0);
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -306,12 +326,54 @@ const AdminPanel = () => {
       return;
     }
 
-    const chapterData = {
+    let pdfUrl = null;
+    
+    // Upload PDF if selected
+    if (pdfFile) {
+      setUploadingPdf(true);
+      try {
+        const fileExt = pdfFile.name.split('.').pop();
+        const fileName = `${selectedSubjectId}/${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('chapter-pdfs')
+          .upload(fileName, pdfFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+        
+        if (uploadError) {
+          console.error("PDF upload error:", uploadError);
+          toast.error("PDF अपलोड करने में त्रुटि");
+          setUploadingPdf(false);
+          return;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('chapter-pdfs')
+          .getPublicUrl(fileName);
+        
+        pdfUrl = urlData.publicUrl;
+        console.log("PDF uploaded:", pdfUrl);
+      } catch (err) {
+        console.error("PDF upload exception:", err);
+        toast.error("PDF अपलोड में समस्या");
+        setUploadingPdf(false);
+        return;
+      }
+      setUploadingPdf(false);
+    }
+
+    const chapterData: any = {
       subject_id: selectedSubjectId,
       chapter_number: parseInt(chapterNumber),
       name: chapterName,
       name_hindi: chapterNameHindi || chapterName
     };
+    
+    if (pdfUrl) {
+      chapterData.pdf_url = pdfUrl;
+    }
 
     if (editingChapterId) {
       const { error } = await supabase
@@ -344,6 +406,7 @@ const AdminPanel = () => {
     setChapterName(chapter.name);
     setChapterNameHindi(chapter.name_hindi);
     setEditingChapterId(chapter.id);
+    setPdfFile(null);
     setChapterDialogOpen(true);
   };
 
@@ -363,8 +426,108 @@ const AdminPanel = () => {
     setChapterName("");
     setChapterNameHindi("");
     setEditingChapterId(null);
+    setPdfFile(null);
+    if (pdfInputRef.current) {
+      pdfInputRef.current.value = "";
+    }
     setChapterDialogOpen(false);
   };
+
+  // AI Question Generation
+  const handleGenerateQuestions = async () => {
+    if (!selectedAiChapterId) {
+      toast.error("अध्याय चुनें");
+      return;
+    }
+
+    const chapter = chapters.find(c => c.id === selectedAiChapterId);
+    if (!chapter?.pdf_url) {
+      toast.error("इस अध्याय में PDF नहीं है। पहले PDF अपलोड करें।");
+      return;
+    }
+
+    const subject = subjects.find(s => s.id === chapter.subject_id);
+    const cls = classes.find(c => c.id === subject?.class_id);
+
+    setGeneratingQuestions(true);
+    setGenerationProgress(10);
+    setGeneratedQuestions([]);
+
+    try {
+      setGenerationProgress(30);
+      
+      const { data, error } = await supabase.functions.invoke('generate-questions-from-pdf', {
+        body: {
+          pdfUrl: chapter.pdf_url,
+          chapterName: chapter.name,
+          subjectName: subject?.name || "Unknown",
+          className: cls ? `Class ${cls.class_number}` : "Unknown",
+          numQuestions: parseInt(numQuestionsToGenerate)
+        }
+      });
+
+      setGenerationProgress(80);
+
+      if (error) {
+        console.error("AI generation error:", error);
+        toast.error("प्रश्न बनाने में त्रुटि");
+        setGeneratingQuestions(false);
+        return;
+      }
+
+      if (data.error) {
+        toast.error(data.error);
+        setGeneratingQuestions(false);
+        return;
+      }
+
+      if (data.questions && data.questions.length > 0) {
+        setGeneratedQuestions(data.questions);
+        setGenerationProgress(100);
+        toast.success(`${data.questions.length} प्रश्न बनाए गए!`);
+      } else {
+        toast.error("कोई प्रश्न नहीं बने");
+      }
+    } catch (err) {
+      console.error("Generation error:", err);
+      toast.error("AI सेवा में त्रुटि");
+    }
+
+    setGeneratingQuestions(false);
+  };
+
+  const handleSaveGeneratedQuestions = async () => {
+    if (generatedQuestions.length === 0) {
+      toast.error("कोई प्रश्न नहीं है");
+      return;
+    }
+
+    const questionsToInsert = generatedQuestions.map(q => ({
+      chapter_id: selectedAiChapterId,
+      question: q.question,
+      options: q.options,
+      correct_answer: q.correct_answer,
+      difficulty: q.difficulty
+    }));
+
+    const { error } = await supabase
+      .from("chapter_questions" as any)
+      .insert(questionsToInsert);
+
+    if (error) {
+      console.error("Save error:", error);
+      toast.error("प्रश्न सेव करने में त्रुटि");
+      return;
+    }
+
+    toast.success(`${generatedQuestions.length} प्रश्न सेव हो गए!`);
+    setGeneratedQuestions([]);
+    setAiDialogOpen(false);
+    setSelectedAiChapterId("");
+    fetchQuestions();
+  };
+
+  const chaptersWithPdf = chapters.filter(c => c.pdf_url);
 
   // Question CRUD operations
   const handleSaveQuestion = async () => {
@@ -668,64 +831,201 @@ const AdminPanel = () => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>📑 अध्याय प्रबंधन</CardTitle>
-                <Dialog open={chapterDialogOpen} onOpenChange={setChapterDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button onClick={() => resetChapterForm()}>
-                      <Plus className="h-4 w-4 mr-2" /> नया अध्याय
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>{editingChapterId ? "अध्याय संपादित करें" : "नया अध्याय जोड़ें"}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 pt-4">
-                      <div>
-                        <Label>विषय चुनें</Label>
-                        <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="विषय चुनें" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {subjects.map((subject) => (
-                              <SelectItem key={subject.id} value={subject.id}>
-                                {subject.emoji} {subject.name} - {getClassName(subject.class_id)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>अध्याय नंबर</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          value={chapterNumber}
-                          onChange={(e) => setChapterNumber(e.target.value)}
-                          placeholder="1"
-                        />
-                      </div>
-                      <div>
-                        <Label>अध्याय नाम (English)</Label>
-                        <Input
-                          value={chapterName}
-                          onChange={(e) => setChapterName(e.target.value)}
-                          placeholder="Numbers"
-                        />
-                      </div>
-                      <div>
-                        <Label>अध्याय नाम (Hindi)</Label>
-                        <Input
-                          value={chapterNameHindi}
-                          onChange={(e) => setChapterNameHindi(e.target.value)}
-                          placeholder="संख्याएं"
-                        />
-                      </div>
-                      <Button onClick={handleSaveChapter} className="w-full">
-                        {editingChapterId ? "अपडेट करें" : "जोड़ें"}
+                <div className="flex gap-2">
+                  <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="secondary" disabled={chaptersWithPdf.length === 0}>
+                        <Sparkles className="h-4 w-4 mr-2" /> AI से प्रश्न बनाएं
                       </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>🤖 AI से प्रश्न बनाएं</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 pt-4">
+                        <div>
+                          <Label>PDF वाला अध्याय चुनें</Label>
+                          <Select value={selectedAiChapterId} onValueChange={setSelectedAiChapterId}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="अध्याय चुनें" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {chaptersWithPdf.map((chapter) => (
+                                <SelectItem key={chapter.id} value={chapter.id}>
+                                  Ch {chapter.chapter_number}: {chapter.name} - {getSubjectName(chapter.subject_id)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>कितने प्रश्न बनाने हैं?</Label>
+                          <Select value={numQuestionsToGenerate} onValueChange={setNumQuestionsToGenerate}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="5">5 प्रश्न</SelectItem>
+                              <SelectItem value="10">10 प्रश्न</SelectItem>
+                              <SelectItem value="15">15 प्रश्न</SelectItem>
+                              <SelectItem value="20">20 प्रश्न</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <Button 
+                          onClick={handleGenerateQuestions} 
+                          className="w-full"
+                          disabled={generatingQuestions || !selectedAiChapterId}
+                        >
+                          {generatingQuestions ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              प्रश्न बन रहे हैं...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              प्रश्न बनाएं
+                            </>
+                          )}
+                        </Button>
+
+                        {generatingQuestions && (
+                          <div className="space-y-2">
+                            <Progress value={generationProgress} className="h-2" />
+                            <p className="text-sm text-muted-foreground text-center">
+                              PDF का विश्लेषण हो रहा है...
+                            </p>
+                          </div>
+                        )}
+
+                        {generatedQuestions.length > 0 && (
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h3 className="font-semibold">{generatedQuestions.length} प्रश्न बने:</h3>
+                              <Button onClick={handleSaveGeneratedQuestions}>
+                                सभी प्रश्न सेव करें
+                              </Button>
+                            </div>
+                            <div className="space-y-3 max-h-96 overflow-y-auto">
+                              {generatedQuestions.map((q, idx) => (
+                                <div key={idx} className="p-3 bg-muted rounded-lg">
+                                  <p className="font-medium text-sm">
+                                    {idx + 1}. {q.question}
+                                  </p>
+                                  <div className="mt-2 grid grid-cols-2 gap-1">
+                                    {q.options.map((opt, optIdx) => (
+                                      <span 
+                                        key={optIdx}
+                                        className={`text-xs px-2 py-1 rounded ${
+                                          opt === q.correct_answer 
+                                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
+                                            : "bg-background"
+                                        }`}
+                                      >
+                                        {String.fromCharCode(65 + optIdx)}. {opt}
+                                      </span>
+                                    ))}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    कठिनाई: {q.difficulty}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  <Dialog open={chapterDialogOpen} onOpenChange={setChapterDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button onClick={() => resetChapterForm()}>
+                        <Plus className="h-4 w-4 mr-2" /> नया अध्याय
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>{editingChapterId ? "अध्याय संपादित करें" : "नया अध्याय जोड़ें"}</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 pt-4">
+                        <div>
+                          <Label>विषय चुनें</Label>
+                          <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="विषय चुनें" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {subjects.map((subject) => (
+                                <SelectItem key={subject.id} value={subject.id}>
+                                  {subject.emoji} {subject.name} - {getClassName(subject.class_id)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>अध्याय नंबर</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={chapterNumber}
+                            onChange={(e) => setChapterNumber(e.target.value)}
+                            placeholder="1"
+                          />
+                        </div>
+                        <div>
+                          <Label>अध्याय नाम (English)</Label>
+                          <Input
+                            value={chapterName}
+                            onChange={(e) => setChapterName(e.target.value)}
+                            placeholder="Numbers"
+                          />
+                        </div>
+                        <div>
+                          <Label>अध्याय नाम (Hindi)</Label>
+                          <Input
+                            value={chapterNameHindi}
+                            onChange={(e) => setChapterNameHindi(e.target.value)}
+                            placeholder="संख्याएं"
+                          />
+                        </div>
+                        <div>
+                          <Label>PDF अपलोड करें (Optional)</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              ref={pdfInputRef}
+                              type="file"
+                              accept=".pdf"
+                              onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                              className="flex-1"
+                            />
+                            {pdfFile && (
+                              <span className="text-xs text-green-600">
+                                ✓ {pdfFile.name}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            PDF अपलोड करने से AI प्रश्न बना सकेगा
+                          </p>
+                        </div>
+                        <Button onClick={handleSaveChapter} className="w-full" disabled={uploadingPdf}>
+                          {uploadingPdf ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              PDF अपलोड हो रहा है...
+                            </>
+                          ) : (
+                            editingChapterId ? "अपडेट करें" : "जोड़ें"
+                          )}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </CardHeader>
               <CardContent>
                 {chapters.length === 0 ? (
@@ -734,13 +1034,30 @@ const AdminPanel = () => {
                   <div className="grid gap-3">
                     {chapters.map((chapter) => (
                       <div key={chapter.id} className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                        <div>
-                          <p className="font-medium">अध्याय {chapter.chapter_number}: {chapter.name}</p>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">अध्याय {chapter.chapter_number}: {chapter.name}</p>
+                            {chapter.pdf_url && (
+                              <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded">
+                                📄 PDF
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">
                             {chapter.name_hindi} • {getSubjectName(chapter.subject_id)}
                           </p>
                         </div>
                         <div className="flex gap-2">
+                          {chapter.pdf_url && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => window.open(chapter.pdf_url!, '_blank')}
+                              title="PDF देखें"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button variant="ghost" size="icon" onClick={() => handleEditChapter(chapter)}>
                             <Edit className="h-4 w-4" />
                           </Button>

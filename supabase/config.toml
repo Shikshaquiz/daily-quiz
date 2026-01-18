@@ -14,3 +14,6 @@ verify_jwt = true
 
 [functions.get-current-affairs]
 verify_jwt = false
+
+[functions.generate-questions-from-pdf]
+verify_jwt = true
