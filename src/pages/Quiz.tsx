@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Trophy, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Trophy, CheckCircle, XCircle, Database, Sparkles } from "lucide-react";
 import InterstitialAd from "@/components/ads/InterstitialAd";
 import BannerAd from "@/components/ads/BannerAd";
 
@@ -14,6 +14,16 @@ interface QuizQuestion {
   correctAnswer: string;
   subject: string;
   explanation: string;
+  source?: "database" | "ai";
+}
+
+interface DBQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correct_answer: string;
+  difficulty: string;
+  chapter_id: string;
 }
 
 const boardNames: Record<string, string> = {
@@ -31,6 +41,8 @@ const Quiz = () => {
   const [credits, setCredits] = useState(0);
   const [questionCount, setQuestionCount] = useState(0);
   const [showAd, setShowAd] = useState(false);
+  const [usedQuestionIds, setUsedQuestionIds] = useState<string[]>([]);
+  const [dbQuestions, setDbQuestions] = useState<DBQuestion[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -40,7 +52,7 @@ const Quiz = () => {
   useEffect(() => {
     checkAuth();
     fetchCredits();
-    loadQuestion();
+    fetchDatabaseQuestions();
   }, []);
 
   const checkAuth = async () => {
@@ -67,6 +79,125 @@ const Quiz = () => {
     }
   };
 
+  // Fetch questions from database based on class and board
+  const fetchDatabaseQuestions = async () => {
+    try {
+      // First, find the class ID for the given class number and board type
+      const { data: classData, error: classError } = await supabase
+        .from("admin_classes")
+        .select("id")
+        .eq("class_number", parseInt(classNumber || "1"))
+        .eq("board_type", currentBoard)
+        .single();
+
+      if (classError || !classData) {
+        console.log("No class found for this board type, will use AI");
+        loadQuestion();
+        return;
+      }
+
+      // Get all subjects for this class
+      const { data: subjects, error: subjectsError } = await supabase
+        .from("admin_subjects")
+        .select("id, name")
+        .eq("class_id", classData.id);
+
+      if (subjectsError || !subjects || subjects.length === 0) {
+        console.log("No subjects found, will use AI");
+        loadQuestion();
+        return;
+      }
+
+      // Get all chapters for these subjects
+      const subjectIds = subjects.map(s => s.id);
+      const { data: chapters, error: chaptersError } = await supabase
+        .from("admin_chapters")
+        .select("id, subject_id")
+        .in("subject_id", subjectIds);
+
+      if (chaptersError || !chapters || chapters.length === 0) {
+        console.log("No chapters found, will use AI");
+        loadQuestion();
+        return;
+      }
+
+      // Get all questions for these chapters
+      const chapterIds = chapters.map(c => c.id);
+      const { data: questions, error: questionsError } = await supabase
+        .from("chapter_questions")
+        .select("*")
+        .in("chapter_id", chapterIds);
+
+      if (questionsError) {
+        console.error("Error fetching questions:", questionsError);
+        loadQuestion();
+        return;
+      }
+
+      if (questions && questions.length > 0) {
+        console.log(`Found ${questions.length} questions in database`);
+        
+        // Create a map of chapter_id to subject name
+        const chapterToSubject: Record<string, string> = {};
+        chapters.forEach(ch => {
+          const subject = subjects.find(s => s.id === ch.subject_id);
+          if (subject) {
+            chapterToSubject[ch.id] = subject.name;
+          }
+        });
+
+        // Transform and store questions
+        const transformedQuestions = questions.map(q => ({
+          ...q,
+          subjectName: chapterToSubject[q.chapter_id] || "General"
+        }));
+
+        setDbQuestions(transformedQuestions as any);
+        loadQuestionFromDB(transformedQuestions as any, []);
+      } else {
+        console.log("No questions in database, will use AI");
+        loadQuestion();
+      }
+    } catch (error) {
+      console.error("Error in fetchDatabaseQuestions:", error);
+      loadQuestion();
+    }
+  };
+
+  // Load question from database
+  const loadQuestionFromDB = (questions: any[], usedIds: string[]) => {
+    setQuestionLoading(true);
+    
+    // Filter out already used questions
+    const availableQuestions = questions.filter(q => !usedIds.includes(q.id));
+    
+    if (availableQuestions.length === 0) {
+      // All database questions used, fallback to AI
+      console.log("All database questions used, switching to AI");
+      loadQuestion();
+      return;
+    }
+
+    // Pick a random question
+    const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+    const dbQuestion = availableQuestions[randomIndex];
+
+    // Transform to quiz format
+    const quizQuestion: QuizQuestion = {
+      question: dbQuestion.question,
+      options: dbQuestion.options as string[],
+      correctAnswer: dbQuestion.correct_answer,
+      subject: dbQuestion.subjectName || "General",
+      explanation: `यह प्रश्न ${dbQuestion.difficulty === 'easy' ? 'आसान' : dbQuestion.difficulty === 'medium' ? 'मध्यम' : 'कठिन'} स्तर का है।`,
+      source: "database"
+    };
+
+    setQuestion(quizQuestion);
+    setUsedQuestionIds([...usedIds, dbQuestion.id]);
+    setQuestionLoading(false);
+  };
+
+  // Load question from AI (fallback)
   const loadQuestion = async () => {
     setQuestionLoading(true);
     try {
@@ -79,7 +210,7 @@ const Quiz = () => {
 
       if (error) throw error;
 
-      setQuestion(data);
+      setQuestion({ ...data, source: "ai" });
     } catch (error: any) {
       console.error("Error loading question:", error);
       toast({
@@ -90,6 +221,18 @@ const Quiz = () => {
     } finally {
       setQuestionLoading(false);
     }
+  };
+
+  // Load next question - prefer database, fallback to AI
+  const loadNextQuestion = () => {
+    if (dbQuestions.length > 0) {
+      const availableQuestions = dbQuestions.filter(q => !usedQuestionIds.includes(q.id));
+      if (availableQuestions.length > 0) {
+        loadQuestionFromDB(dbQuestions as any, usedQuestionIds);
+        return;
+      }
+    }
+    loadQuestion();
   };
 
   const handleSubmit = async () => {
@@ -149,7 +292,7 @@ const Quiz = () => {
     } else {
       setSelectedAnswer(null);
       setShowResult(false);
-      loadQuestion();
+      loadNextQuestion();
     }
   };
 
@@ -157,7 +300,7 @@ const Quiz = () => {
     setShowAd(false);
     setSelectedAnswer(null);
     setShowResult(false);
-    loadQuestion();
+    loadNextQuestion();
   };
 
   if (loading || questionLoading) {
@@ -218,6 +361,25 @@ const Quiz = () => {
               <span className="px-2 py-1 bg-accent/10 text-accent rounded-full text-xs md:text-sm font-medium">
                 {question.subject}
               </span>
+              {question.source && (
+                <span className={`px-2 py-1 rounded-full text-xs md:text-sm font-medium flex items-center gap-1 ${
+                  question.source === "database" 
+                    ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                    : "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
+                }`}>
+                  {question.source === "database" ? (
+                    <>
+                      <Database className="w-3 h-3" />
+                      Database
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3 h-3" />
+                      AI
+                    </>
+                  )}
+                </span>
+              )}
             </div>
             <h2 className="text-base md:text-2xl font-bold mb-4 md:mb-6">{question.question}</h2>
           </div>
