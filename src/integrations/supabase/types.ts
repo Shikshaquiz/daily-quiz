@@ -81,6 +81,7 @@ export type Database = {
           id: string
           name: string
           name_hindi: string
+          pdf_url: string | null
         }
         Insert: {
           class_id: string
@@ -89,6 +90,7 @@ export type Database = {
           id?: string
           name: string
           name_hindi: string
+          pdf_url?: string | null
         }
         Update: {
           class_id?: string
@@ -97,6 +99,7 @@ export type Database = {
           id?: string
           name?: string
           name_hindi?: string
+          pdf_url?: string | null
         }
         Relationships: [
           {

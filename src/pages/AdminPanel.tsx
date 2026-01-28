@@ -26,6 +26,7 @@ interface AdminSubject {
   name: string;
   name_hindi: string;
   emoji: string;
+  pdf_url?: string | null;
   created_at: string;
 }
 
@@ -85,6 +86,9 @@ const AdminPanel = () => {
   const [subjectNameHindi, setSubjectNameHindi] = useState("");
   const [subjectEmoji, setSubjectEmoji] = useState("📚");
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
+  const [subjectPdfFile, setSubjectPdfFile] = useState<File | null>(null);
+  const [uploadingSubjectPdf, setUploadingSubjectPdf] = useState(false);
+  const subjectPdfInputRef = useRef<HTMLInputElement>(null);
   
   // Form states for Chapters
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
@@ -283,12 +287,54 @@ const AdminPanel = () => {
       return;
     }
 
-    const subjectData = {
+    let pdfUrl = null;
+    
+    // Upload PDF if selected
+    if (subjectPdfFile) {
+      setUploadingSubjectPdf(true);
+      try {
+        const fileExt = subjectPdfFile.name.split('.').pop();
+        const fileName = `subjects/${selectedClassId}/${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('chapter-pdfs')
+          .upload(fileName, subjectPdfFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+        
+        if (uploadError) {
+          console.error("Subject PDF upload error:", uploadError);
+          toast.error("PDF अपलोड करने में त्रुटि");
+          setUploadingSubjectPdf(false);
+          return;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('chapter-pdfs')
+          .getPublicUrl(fileName);
+        
+        pdfUrl = urlData.publicUrl;
+        console.log("Subject PDF uploaded:", pdfUrl);
+      } catch (err) {
+        console.error("Subject PDF upload exception:", err);
+        toast.error("PDF अपलोड में समस्या");
+        setUploadingSubjectPdf(false);
+        return;
+      }
+      setUploadingSubjectPdf(false);
+    }
+
+    const subjectData: any = {
       class_id: selectedClassId,
       name: subjectName,
       name_hindi: subjectNameHindi || subjectName,
       emoji: subjectEmoji
     };
+    
+    if (pdfUrl) {
+      subjectData.pdf_url = pdfUrl;
+    }
 
     if (editingSubjectId) {
       const { error } = await supabase
@@ -321,6 +367,7 @@ const AdminPanel = () => {
     setSubjectNameHindi(subject.name_hindi);
     setSubjectEmoji(subject.emoji);
     setEditingSubjectId(subject.id);
+    setSubjectPdfFile(null);
     setSubjectDialogOpen(true);
   };
 
@@ -340,6 +387,10 @@ const AdminPanel = () => {
     setSubjectNameHindi("");
     setSubjectEmoji("📚");
     setEditingSubjectId(null);
+    setSubjectPdfFile(null);
+    if (subjectPdfInputRef.current) {
+      subjectPdfInputRef.current.value = "";
+    }
     setSubjectDialogOpen(false);
   };
 
@@ -839,8 +890,36 @@ const AdminPanel = () => {
                           placeholder="📐"
                         />
                       </div>
-                      <Button onClick={handleSaveSubject} className="w-full">
-                        {editingSubjectId ? "अपडेट करें" : "जोड़ें"}
+                      <div>
+                        <Label>PDF अपलोड करें (Optional)</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            ref={subjectPdfInputRef}
+                            type="file"
+                            accept=".pdf"
+                            onChange={(e) => setSubjectPdfFile(e.target.files?.[0] || null)}
+                            className="flex-1"
+                          />
+                          {subjectPdfFile && (
+                            <span className="text-sm text-green-600 flex items-center gap-1">
+                              <FileText className="h-4 w-4" /> {subjectPdfFile.name.slice(0, 20)}...
+                            </span>
+                          )}
+                        </div>
+                        {editingSubjectId && subjects.find(s => s.id === editingSubjectId)?.pdf_url && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            पहले से PDF अपलोड है। नया अपलोड करने पर पुराना replace हो जाएगा।
+                          </p>
+                        )}
+                      </div>
+                      <Button onClick={handleSaveSubject} className="w-full" disabled={uploadingSubjectPdf}>
+                        {uploadingSubjectPdf ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" /> अपलोड हो रहा है...
+                          </>
+                        ) : (
+                          editingSubjectId ? "अपडेट करें" : "जोड़ें"
+                        )}
                       </Button>
                     </div>
                   </DialogContent>
@@ -854,7 +933,20 @@ const AdminPanel = () => {
                     {subjects.map((subject) => (
                       <div key={subject.id} className="flex items-center justify-between p-4 bg-muted rounded-lg">
                         <div>
-                          <p className="font-medium">{subject.emoji} {subject.name}</p>
+                          <p className="font-medium flex items-center gap-2">
+                            {subject.emoji} {subject.name}
+                            {subject.pdf_url && (
+                              <a 
+                                href={subject.pdf_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800"
+                                title="PDF देखें"
+                              >
+                                <FileText className="h-4 w-4" />
+                              </a>
+                            )}
+                          </p>
                           <p className="text-sm text-muted-foreground">
                             {subject.name_hindi} • {getClassName(subject.class_id)}
                           </p>
