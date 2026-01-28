@@ -58,7 +58,8 @@ interface GeneratedQuestion {
 
 const AdminPanel = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [isAuthed, setIsAuthed] = useState(false);
   const [activeTab, setActiveTab] = useState("classes");
   
   // Data states
@@ -115,23 +116,46 @@ const AdminPanel = () => {
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
 
   useEffect(() => {
-    checkAuth();
+    let mounted = true;
+
+    const sync = (session: Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]) => {
+      if (!mounted) return;
+      setIsAuthed(!!session);
+      setAuthChecking(false);
+    };
+
+    setAuthChecking(true);
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      sync(session);
+    });
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          console.error("Admin auth getSession error:", error);
+        }
+        sync(session);
+      })
+      .catch((err) => {
+        console.error("Admin auth getSession exception:", err);
+        sync(null);
+      });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
-    if (!loading) {
+    if (isAuthed) {
       fetchAllData();
     }
-  }, [loading]);
-
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/auth");
-      return;
-    }
-    setLoading(false);
-  };
+  }, [isAuthed]);
 
   const fetchAllData = async () => {
     await Promise.all([
@@ -621,10 +645,35 @@ const AdminPanel = () => {
     return chapter ? `Chapter ${chapter.chapter_number}: ${chapter.name}` : "Unknown";
   };
 
-  if (loading) {
+  if (authChecking) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAuthed) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>🔒 Admin Panel</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Admin panel खोलने के लिए पहले लॉगिन करना ज़रूरी है।
+            </p>
+            <div className="flex gap-2">
+              <Button onClick={() => navigate("/auth")} className="flex-1">
+                लॉगिन करें
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/")} className="flex-1">
+                होम
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
