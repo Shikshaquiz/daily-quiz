@@ -118,6 +118,15 @@ const AdminPanel = () => {
   const [numQuestionsToGenerate, setNumQuestionsToGenerate] = useState("10");
   const [generationProgress, setGenerationProgress] = useState(0);
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  
+  // Subject AI Generation states
+  const [subjectAiDialogOpen, setSubjectAiDialogOpen] = useState(false);
+  const [selectedAiSubjectId, setSelectedAiSubjectId] = useState("");
+  const [generatingSubjectQuestions, setGeneratingSubjectQuestions] = useState(false);
+  const [generatedSubjectQuestions, setGeneratedSubjectQuestions] = useState<GeneratedQuestion[]>([]);
+  const [subjectGenerationProgress, setSubjectGenerationProgress] = useState(0);
+  const [numSubjectQuestionsToGenerate, setNumSubjectQuestionsToGenerate] = useState("10");
+  const [selectedTargetChapterId, setSelectedTargetChapterId] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -603,6 +612,110 @@ const AdminPanel = () => {
   };
 
   const chaptersWithPdf = chapters.filter(c => c.pdf_url);
+  const subjectsWithPdf = subjects.filter(s => s.pdf_url);
+
+  // Subject AI Question Generation
+  const handleGenerateSubjectQuestions = async () => {
+    if (!selectedAiSubjectId) {
+      toast.error("विषय चुनें");
+      return;
+    }
+
+    const subject = subjects.find(s => s.id === selectedAiSubjectId);
+    if (!subject?.pdf_url) {
+      toast.error("इस विषय में PDF नहीं है। पहले PDF अपलोड करें।");
+      return;
+    }
+
+    const cls = classes.find(c => c.id === subject.class_id);
+
+    setGeneratingSubjectQuestions(true);
+    setSubjectGenerationProgress(10);
+    setGeneratedSubjectQuestions([]);
+
+    try {
+      setSubjectGenerationProgress(30);
+      
+      const { data, error } = await supabase.functions.invoke('generate-questions-from-pdf', {
+        body: {
+          pdfUrl: subject.pdf_url,
+          chapterName: subject.name,
+          subjectName: subject.name,
+          className: cls ? `Class ${cls.class_number}` : "Unknown",
+          numQuestions: parseInt(numSubjectQuestionsToGenerate)
+        }
+      });
+
+      setSubjectGenerationProgress(80);
+
+      if (error) {
+        console.error("AI generation error:", error);
+        toast.error("प्रश्न बनाने में त्रुटि");
+        setGeneratingSubjectQuestions(false);
+        return;
+      }
+
+      if (data.error) {
+        toast.error(data.error);
+        setGeneratingSubjectQuestions(false);
+        return;
+      }
+
+      if (data.questions && data.questions.length > 0) {
+        setGeneratedSubjectQuestions(data.questions);
+        setSubjectGenerationProgress(100);
+        toast.success(`${data.questions.length} प्रश्न बनाए गए!`);
+      } else {
+        toast.error("कोई प्रश्न नहीं बने");
+      }
+    } catch (err) {
+      console.error("Generation error:", err);
+      toast.error("AI सेवा में त्रुटि");
+    }
+
+    setGeneratingSubjectQuestions(false);
+  };
+
+  const handleSaveSubjectGeneratedQuestions = async () => {
+    if (generatedSubjectQuestions.length === 0) {
+      toast.error("कोई प्रश्न नहीं है");
+      return;
+    }
+
+    if (!selectedTargetChapterId) {
+      toast.error("प्रश्न सेव करने के लिए अध्याय चुनें");
+      return;
+    }
+
+    const questionsToInsert = generatedSubjectQuestions.map(q => ({
+      chapter_id: selectedTargetChapterId,
+      question: q.question,
+      options: q.options,
+      correct_answer: q.correct_answer,
+      difficulty: q.difficulty
+    }));
+
+    const { error } = await supabase
+      .from("chapter_questions" as any)
+      .insert(questionsToInsert);
+
+    if (error) {
+      console.error("Save error:", error);
+      toast.error("प्रश्न सेव करने में त्रुटि");
+      return;
+    }
+
+    toast.success(`${generatedSubjectQuestions.length} प्रश्न सेव हो गए!`);
+    setGeneratedSubjectQuestions([]);
+    setSubjectAiDialogOpen(false);
+    setSelectedAiSubjectId("");
+    setSelectedTargetChapterId("");
+    fetchQuestions();
+  };
+
+  const getChaptersForSubject = (subjectId: string) => {
+    return chapters.filter(c => c.subject_id === subjectId);
+  };
 
   // Question CRUD operations
   const handleSaveQuestion = async () => {
@@ -840,12 +953,158 @@ const AdminPanel = () => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>📖 विषय प्रबंधन</CardTitle>
-                <Dialog open={subjectDialogOpen} onOpenChange={setSubjectDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button onClick={() => resetSubjectForm()}>
-                      <Plus className="h-4 w-4 mr-2" /> नया विषय
-                    </Button>
-                  </DialogTrigger>
+                <div className="flex gap-2">
+                  {/* Subject AI Dialog */}
+                  <Dialog open={subjectAiDialogOpen} onOpenChange={setSubjectAiDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="secondary" disabled={subjectsWithPdf.length === 0}>
+                        <Sparkles className="h-4 w-4 mr-2" /> AI से प्रश्न
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>🤖 Subject PDF से प्रश्न बनाएं</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 pt-4">
+                        <div>
+                          <Label>PDF वाला विषय चुनें</Label>
+                          <Select value={selectedAiSubjectId} onValueChange={(val) => {
+                            setSelectedAiSubjectId(val);
+                            setSelectedTargetChapterId("");
+                            setGeneratedSubjectQuestions([]);
+                          }}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="विषय चुनें" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {subjectsWithPdf.map((subject) => (
+                                <SelectItem key={subject.id} value={subject.id}>
+                                  {subject.emoji} {subject.name} - {getClassName(subject.class_id)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {selectedAiSubjectId && (
+                          <div>
+                            <Label>प्रश्न किस अध्याय में सेव करें?</Label>
+                            <Select value={selectedTargetChapterId} onValueChange={setSelectedTargetChapterId}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="अध्याय चुनें (प्रश्न सेव करने के लिए)" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {getChaptersForSubject(selectedAiSubjectId).map((chapter) => (
+                                  <SelectItem key={chapter.id} value={chapter.id}>
+                                    Ch {chapter.chapter_number}: {chapter.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {getChaptersForSubject(selectedAiSubjectId).length === 0 && (
+                              <p className="text-xs text-amber-600 mt-1">
+                                ⚠️ इस विषय में कोई अध्याय नहीं है। पहले अध्याय जोड़ें।
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        
+                        <div>
+                          <Label>कितने प्रश्न बनाने हैं?</Label>
+                          <Select value={numSubjectQuestionsToGenerate} onValueChange={setNumSubjectQuestionsToGenerate}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="5">5 प्रश्न</SelectItem>
+                              <SelectItem value="10">10 प्रश्न</SelectItem>
+                              <SelectItem value="15">15 प्रश्न</SelectItem>
+                              <SelectItem value="20">20 प्रश्न</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <Button 
+                          onClick={handleGenerateSubjectQuestions} 
+                          className="w-full"
+                          disabled={generatingSubjectQuestions || !selectedAiSubjectId}
+                        >
+                          {generatingSubjectQuestions ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              प्रश्न बन रहे हैं...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              प्रश्न बनाएं
+                            </>
+                          )}
+                        </Button>
+
+                        {generatingSubjectQuestions && (
+                          <div className="space-y-2">
+                            <Progress value={subjectGenerationProgress} className="h-2" />
+                            <p className="text-sm text-muted-foreground text-center">
+                              PDF का विश्लेषण हो रहा है...
+                            </p>
+                          </div>
+                        )}
+
+                        {generatedSubjectQuestions.length > 0 && (
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h3 className="font-semibold">{generatedSubjectQuestions.length} प्रश्न बने:</h3>
+                              <Button 
+                                onClick={handleSaveSubjectGeneratedQuestions}
+                                disabled={!selectedTargetChapterId}
+                              >
+                                सभी प्रश्न सेव करें
+                              </Button>
+                            </div>
+                            {!selectedTargetChapterId && (
+                              <p className="text-xs text-amber-600">
+                                ⚠️ प्रश्न सेव करने के लिए ऊपर अध्याय चुनें
+                              </p>
+                            )}
+                            <div className="space-y-3 max-h-96 overflow-y-auto">
+                              {generatedSubjectQuestions.map((q, idx) => (
+                                <div key={idx} className="p-3 bg-muted rounded-lg">
+                                  <p className="font-medium text-sm">
+                                    {idx + 1}. {q.question}
+                                  </p>
+                                  <div className="mt-2 grid grid-cols-2 gap-1">
+                                    {q.options.map((opt, optIdx) => (
+                                      <span 
+                                        key={optIdx}
+                                        className={`text-xs px-2 py-1 rounded ${
+                                          opt === q.correct_answer 
+                                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
+                                            : "bg-background"
+                                        }`}
+                                      >
+                                        {String.fromCharCode(65 + optIdx)}. {opt}
+                                      </span>
+                                    ))}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    कठिनाई: {q.difficulty}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  
+                  <Dialog open={subjectDialogOpen} onOpenChange={setSubjectDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button onClick={() => resetSubjectForm()}>
+                        <Plus className="h-4 w-4 mr-2" /> नया विषय
+                      </Button>
+                    </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>{editingSubjectId ? "विषय संपादित करें" : "नया विषय जोड़ें"}</DialogTitle>
@@ -924,6 +1183,7 @@ const AdminPanel = () => {
                     </div>
                   </DialogContent>
                 </Dialog>
+                </div>
               </CardHeader>
               <CardContent>
                 {subjects.length === 0 ? (
