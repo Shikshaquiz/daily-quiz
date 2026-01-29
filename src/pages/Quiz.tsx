@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Trophy, CheckCircle, XCircle, Database, Sparkles } from "lucide-react";
+import { ArrowLeft, Trophy, CheckCircle, XCircle, Database, Sparkles, Share2, MessageCircle, Send } from "lucide-react";
 import InterstitialAd from "@/components/ads/InterstitialAd";
 import BannerAd from "@/components/ads/BannerAd";
 
@@ -417,9 +417,76 @@ const Quiz = () => {
           </div>
 
           {showResult && (
-            <div className="mt-4 md:mt-6 p-3 md:p-4 bg-muted rounded-lg">
-              <p className="text-sm md:text-base font-medium mb-2">व्याख्या:</p>
-              <p className="text-xs md:text-sm text-muted-foreground">{question.explanation}</p>
+            <div className="mt-4 md:mt-6 space-y-4">
+              <div className="p-3 md:p-4 bg-muted rounded-lg">
+                <p className="text-sm md:text-base font-medium mb-2">व्याख्या:</p>
+                <p className="text-xs md:text-sm text-muted-foreground">{question.explanation}</p>
+              </div>
+              
+              {/* Social Share Buttons */}
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-xs text-muted-foreground">शेयर करें:</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-green-500 hover:bg-green-600 text-white border-green-500"
+                  onClick={() => {
+                    const isCorrect = selectedAnswer === question.correctAnswer;
+                    const message = isCorrect 
+                      ? `🎉 मैंने Shiksha Quiz में कक्षा ${classNumber} का प्रश्न सही किया!\n\n❓ ${question.question}\n✅ सही जवाब: ${question.correctAnswer}\n\n🏆 आप भी खेलें और जीतें!`
+                      : `📚 Shiksha Quiz में कक्षा ${classNumber} का प्रश्न!\n\n❓ ${question.question}\n✅ सही जवाब: ${question.correctAnswer}\n\n🎯 आप भी खेलें और सीखें!`;
+                    const url = window.location.origin;
+                    window.open(`https://wa.me/?text=${encodeURIComponent(message + '\n\n' + url)}`, '_blank');
+                  }}
+                >
+                  <MessageCircle className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-blue-500 hover:bg-blue-600 text-white border-blue-500"
+                  onClick={() => {
+                    const isCorrect = selectedAnswer === question.correctAnswer;
+                    const message = isCorrect 
+                      ? `🎉 मैंने Shiksha Quiz में कक्षा ${classNumber} का प्रश्न सही किया!\n\n❓ ${question.question}\n✅ सही जवाब: ${question.correctAnswer}\n\n🏆 आप भी खेलें!`
+                      : `📚 Shiksha Quiz में कक्षा ${classNumber} का प्रश्न!\n\n❓ ${question.question}\n✅ सही जवाब: ${question.correctAnswer}\n\n🎯 आप भी खेलें!`;
+                    const url = window.location.origin;
+                    window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(message)}`, '_blank');
+                  }}
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    const isCorrect = selectedAnswer === question.correctAnswer;
+                    const message = isCorrect 
+                      ? `🎉 मैंने Shiksha Quiz में कक्षा ${classNumber} का प्रश्न सही किया!\n\n❓ ${question.question}\n✅ सही जवाब: ${question.correctAnswer}`
+                      : `📚 Shiksha Quiz में कक्षा ${classNumber} का प्रश्न!\n\n❓ ${question.question}\n✅ सही जवाब: ${question.correctAnswer}`;
+                    const url = window.location.origin;
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({
+                          title: 'Shiksha Quiz',
+                          text: message,
+                          url: url,
+                        });
+                      } catch (err) {
+                        console.log('Share cancelled');
+                      }
+                    } else {
+                      navigator.clipboard.writeText(message + '\n\n' + url);
+                      toast({
+                        title: "कॉपी हो गया!",
+                        description: "लिंक clipboard में कॉपी हो गया",
+                      });
+                    }
+                  }}
+                >
+                  <Share2 className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           )}
         </Card>
