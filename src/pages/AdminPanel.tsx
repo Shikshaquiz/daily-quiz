@@ -586,29 +586,43 @@ const AdminPanel = () => {
       return;
     }
 
-    const questionsToInsert = generatedQuestions.map(q => ({
-      chapter_id: selectedAiChapterId,
-      question: q.question,
-      options: q.options,
-      correct_answer: q.correct_answer,
-      difficulty: q.difficulty
-    }));
-
-    const { error } = await supabase
-      .from("chapter_questions" as any)
-      .insert(questionsToInsert);
-
-    if (error) {
-      console.error("Save error:", error);
-      toast.error("प्रश्न सेव करने में त्रुटि");
+    if (!selectedAiChapterId) {
+      toast.error("अध्याय चुनें");
       return;
     }
 
-    toast.success(`${generatedQuestions.length} प्रश्न सेव हो गए!`);
-    setGeneratedQuestions([]);
-    setAiDialogOpen(false);
-    setSelectedAiChapterId("");
-    fetchQuestions();
+    try {
+      const questionsToInsert = generatedQuestions.map(q => ({
+        chapter_id: selectedAiChapterId,
+        question: q.question,
+        options: Array.isArray(q.options) ? q.options : [],
+        correct_answer: q.correct_answer || "",
+        difficulty: q.difficulty || "medium"
+      }));
+
+      console.log("Saving questions:", questionsToInsert);
+
+      const { data, error } = await supabase
+        .from("chapter_questions" as any)
+        .insert(questionsToInsert)
+        .select();
+
+      if (error) {
+        console.error("Save error:", error);
+        toast.error(`सेव में त्रुटि: ${error.message}`);
+        return;
+      }
+
+      console.log("Saved successfully:", data);
+      toast.success(`${generatedQuestions.length} प्रश्न सेव हो गए!`);
+      setGeneratedQuestions([]);
+      setAiDialogOpen(false);
+      setSelectedAiChapterId("");
+      fetchQuestions();
+    } catch (err) {
+      console.error("Save exception:", err);
+      toast.error("प्रश्न सेव करने में समस्या");
+    }
   };
 
   const chaptersWithPdf = chapters.filter(c => c.pdf_url);
@@ -687,30 +701,39 @@ const AdminPanel = () => {
       return;
     }
 
-    const questionsToInsert = generatedSubjectQuestions.map(q => ({
-      chapter_id: selectedTargetChapterId,
-      question: q.question,
-      options: q.options,
-      correct_answer: q.correct_answer,
-      difficulty: q.difficulty
-    }));
+    try {
+      const questionsToInsert = generatedSubjectQuestions.map(q => ({
+        chapter_id: selectedTargetChapterId,
+        question: q.question,
+        options: Array.isArray(q.options) ? q.options : [],
+        correct_answer: q.correct_answer || "",
+        difficulty: q.difficulty || "medium"
+      }));
 
-    const { error } = await supabase
-      .from("chapter_questions" as any)
-      .insert(questionsToInsert);
+      console.log("Saving subject questions:", questionsToInsert);
 
-    if (error) {
-      console.error("Save error:", error);
-      toast.error("प्रश्न सेव करने में त्रुटि");
-      return;
+      const { data, error } = await supabase
+        .from("chapter_questions" as any)
+        .insert(questionsToInsert)
+        .select();
+
+      if (error) {
+        console.error("Save error:", error);
+        toast.error(`सेव में त्रुटि: ${error.message}`);
+        return;
+      }
+
+      console.log("Saved successfully:", data);
+      toast.success(`${generatedSubjectQuestions.length} प्रश्न सेव हो गए!`);
+      setGeneratedSubjectQuestions([]);
+      setSubjectAiDialogOpen(false);
+      setSelectedAiSubjectId("");
+      setSelectedTargetChapterId("");
+      fetchQuestions();
+    } catch (err) {
+      console.error("Save exception:", err);
+      toast.error("प्रश्न सेव करने में समस्या");
     }
-
-    toast.success(`${generatedSubjectQuestions.length} प्रश्न सेव हो गए!`);
-    setGeneratedSubjectQuestions([]);
-    setSubjectAiDialogOpen(false);
-    setSelectedAiSubjectId("");
-    setSelectedTargetChapterId("");
-    fetchQuestions();
   };
 
   const getChaptersForSubject = (subjectId: string) => {
@@ -1016,10 +1039,14 @@ const AdminPanel = () => {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="5">5 प्रश्न</SelectItem>
                               <SelectItem value="10">10 प्रश्न</SelectItem>
-                              <SelectItem value="15">15 प्रश्न</SelectItem>
                               <SelectItem value="20">20 प्रश्न</SelectItem>
+                              <SelectItem value="50">50 प्रश्न</SelectItem>
+                              <SelectItem value="100">100 प्रश्न</SelectItem>
+                              <SelectItem value="200">200 प्रश्न</SelectItem>
+                              <SelectItem value="300">300 प्रश्न</SelectItem>
+                              <SelectItem value="400">400 प्रश्न</SelectItem>
+                              <SelectItem value="500">500 प्रश्न</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -1266,10 +1293,14 @@ const AdminPanel = () => {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="5">5 प्रश्न</SelectItem>
                               <SelectItem value="10">10 प्रश्न</SelectItem>
-                              <SelectItem value="15">15 प्रश्न</SelectItem>
                               <SelectItem value="20">20 प्रश्न</SelectItem>
+                              <SelectItem value="50">50 प्रश्न</SelectItem>
+                              <SelectItem value="100">100 प्रश्न</SelectItem>
+                              <SelectItem value="200">200 प्रश्न</SelectItem>
+                              <SelectItem value="300">300 प्रश्न</SelectItem>
+                              <SelectItem value="400">400 प्रश्न</SelectItem>
+                              <SelectItem value="500">500 प्रश्न</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
