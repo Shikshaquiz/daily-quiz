@@ -61,6 +61,7 @@ const AdminPanel = () => {
   const navigate = useNavigate();
   const [authChecking, setAuthChecking] = useState(true);
   const [isAuthed, setIsAuthed] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState("classes");
   
   // Data states
@@ -131,10 +132,41 @@ const AdminPanel = () => {
   useEffect(() => {
     let mounted = true;
 
-    const sync = (session: Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]) => {
+    const checkAdminRole = async (userId: string) => {
+      try {
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .eq('role', 'admin')
+          .maybeSingle();
+        
+        if (error) {
+          console.error("Error checking admin role:", error);
+          return false;
+        }
+        return !!data;
+      } catch (err) {
+        console.error("Admin role check exception:", err);
+        return false;
+      }
+    };
+
+    const sync = async (session: Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]) => {
       if (!mounted) return;
-      setIsAuthed(!!session);
-      setAuthChecking(false);
+      
+      if (session?.user) {
+        setIsAuthed(true);
+        const adminStatus = await checkAdminRole(session.user.id);
+        if (mounted) {
+          setIsAdmin(adminStatus);
+          setAuthChecking(false);
+        }
+      } else {
+        setIsAuthed(false);
+        setIsAdmin(false);
+        setAuthChecking(false);
+      }
     };
 
     setAuthChecking(true);
@@ -165,10 +197,10 @@ const AdminPanel = () => {
   }, []);
 
   useEffect(() => {
-    if (isAuthed) {
+    if (isAuthed && isAdmin) {
       fetchAllData();
     }
-  }, [isAuthed]);
+  }, [isAuthed, isAdmin]);
 
   const fetchAllData = async () => {
     await Promise.all([
@@ -857,6 +889,28 @@ const AdminPanel = () => {
               </Button>
               <Button variant="outline" onClick={() => navigate("/")} className="flex-1">
                 होम
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>🚫 Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              आपके पास Admin Panel का access नहीं है। सिर्फ admin users ही इस page को देख सकते हैं।
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => navigate("/")} className="flex-1">
+                होम जाएं
               </Button>
             </div>
           </CardContent>
