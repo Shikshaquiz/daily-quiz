@@ -96,11 +96,12 @@ const Quiz = () => {
         return;
       }
 
-      // Get all subjects for this class
+      // Get only subjects that have PDFs uploaded
       const { data: subjects, error: subjectsError } = await supabase
         .from("admin_subjects")
         .select("id, name")
-        .eq("class_id", classData.id);
+        .eq("class_id", classData.id)
+        .not("pdf_url", "is", null);
 
       if (subjectsError || !subjects || subjects.length === 0) {
         console.log("No subjects found, will use AI");
