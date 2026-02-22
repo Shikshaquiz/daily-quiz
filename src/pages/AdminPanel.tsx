@@ -557,8 +557,8 @@ const AdminPanel = () => {
     }
 
     const chapter = chapters.find(c => c.id === selectedAiChapterId);
-    if (!chapter?.pdf_url) {
-      toast.error("इस अध्याय में PDF नहीं है। पहले PDF अपलोड करें।");
+    if (!chapter) {
+      toast.error("अध्याय नहीं मिला");
       return;
     }
 
@@ -574,7 +574,7 @@ const AdminPanel = () => {
       
       const { data, error } = await supabase.functions.invoke('generate-questions-from-pdf', {
         body: {
-          pdfUrl: chapter.pdf_url,
+          pdfUrl: chapter.pdf_url || null,
           chapterName: chapter.name,
           subjectName: subject?.name || "Unknown",
           className: cls ? `Class ${cls.class_number}` : "Unknown",
@@ -668,8 +668,8 @@ const AdminPanel = () => {
     }
 
     const subject = subjects.find(s => s.id === selectedAiSubjectId);
-    if (!subject?.pdf_url) {
-      toast.error("इस विषय में PDF नहीं है। पहले PDF अपलोड करें।");
+    if (!subject) {
+      toast.error("विषय नहीं मिला");
       return;
     }
 
@@ -684,7 +684,7 @@ const AdminPanel = () => {
       
       const { data, error } = await supabase.functions.invoke('generate-questions-from-pdf', {
         body: {
-          pdfUrl: subject.pdf_url,
+          pdfUrl: subject.pdf_url || null,
           chapterName: subject.name,
           subjectName: subject.name,
           className: cls ? `Class ${cls.class_number}` : "Unknown",
@@ -1034,17 +1034,17 @@ const AdminPanel = () => {
                   {/* Subject AI Dialog */}
                   <Dialog open={subjectAiDialogOpen} onOpenChange={setSubjectAiDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="secondary" disabled={subjectsWithPdf.length === 0}>
+                      <Button variant="secondary" disabled={subjects.length === 0}>
                         <Sparkles className="h-4 w-4 mr-2" /> AI से प्रश्न
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
-                        <DialogTitle>🤖 Subject PDF से प्रश्न बनाएं</DialogTitle>
+                        <DialogTitle>🤖 विषय से प्रश्न बनाएं</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4 pt-4">
                         <div>
-                          <Label>PDF वाला विषय चुनें</Label>
+                          <Label>विषय चुनें</Label>
                           <Select value={selectedAiSubjectId} onValueChange={(val) => {
                             setSelectedAiSubjectId(val);
                             setSelectedTargetChapterId("");
@@ -1054,7 +1054,7 @@ const AdminPanel = () => {
                               <SelectValue placeholder="विषय चुनें" />
                             </SelectTrigger>
                             <SelectContent>
-                              {subjectsWithPdf.map((subject) => (
+                              {subjects.map((subject) => (
                                 <SelectItem key={subject.id} value={subject.id}>
                                   {subject.emoji} {subject.name} - {getClassName(subject.class_id)}
                                 </SelectItem>
@@ -1316,7 +1316,7 @@ const AdminPanel = () => {
                 <div className="flex gap-2">
                   <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="secondary" disabled={chaptersWithPdf.length === 0}>
+                      <Button variant="secondary" disabled={chapters.length === 0}>
                         <Sparkles className="h-4 w-4 mr-2" /> AI से प्रश्न बनाएं
                       </Button>
                     </DialogTrigger>
@@ -1326,13 +1326,13 @@ const AdminPanel = () => {
                       </DialogHeader>
                       <div className="space-y-4 pt-4">
                         <div>
-                          <Label>PDF वाला अध्याय चुनें</Label>
+                          <Label>अध्याय चुनें</Label>
                           <Select value={selectedAiChapterId} onValueChange={setSelectedAiChapterId}>
                             <SelectTrigger>
                               <SelectValue placeholder="अध्याय चुनें" />
                             </SelectTrigger>
                             <SelectContent>
-                              {chaptersWithPdf.map((chapter) => (
+                              {chapters.map((chapter) => (
                                 <SelectItem key={chapter.id} value={chapter.id}>
                                   Ch {chapter.chapter_number}: {chapter.name} - {getSubjectName(chapter.subject_id)}
                                 </SelectItem>
