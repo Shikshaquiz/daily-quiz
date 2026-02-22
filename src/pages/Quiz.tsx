@@ -91,8 +91,13 @@ const Quiz = () => {
         .single();
 
       if (classError || !classData) {
-        console.log("No class found for this board type, will use AI");
-        loadQuestion();
+        console.log("No class found for this board type");
+        setQuestionLoading(false);
+        toast({
+          title: "कोई प्रश्न उपलब्ध नहीं",
+          description: "इस कक्षा के लिए अभी तक कोई PDF अपलोड नहीं किया गया है।",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -104,8 +109,13 @@ const Quiz = () => {
         .not("pdf_url", "is", null);
 
       if (subjectsError || !subjects || subjects.length === 0) {
-        console.log("No subjects found, will use AI");
-        loadQuestion();
+        console.log("No subjects with PDF found");
+        setQuestionLoading(false);
+        toast({
+          title: "कोई प्रश्न उपलब्ध नहीं",
+          description: "इस कक्षा के लिए कोई PDF वाला विषय नहीं मिला।",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -117,8 +127,13 @@ const Quiz = () => {
         .in("subject_id", subjectIds);
 
       if (chaptersError || !chapters || chapters.length === 0) {
-        console.log("No chapters found, will use AI");
-        loadQuestion();
+        console.log("No chapters found");
+        setQuestionLoading(false);
+        toast({
+          title: "कोई प्रश्न उपलब्ध नहीं",
+          description: "इस विषय के लिए कोई अध्याय नहीं मिला।",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -131,7 +146,12 @@ const Quiz = () => {
 
       if (questionsError) {
         console.error("Error fetching questions:", questionsError);
-        loadQuestion();
+        setQuestionLoading(false);
+        toast({
+          title: "त्रुटि",
+          description: "प्रश्न लोड करने में समस्या आई।",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -156,8 +176,13 @@ const Quiz = () => {
         setDbQuestions(transformedQuestions as any);
         loadQuestionFromDB(transformedQuestions as any, []);
       } else {
-        console.log("No questions in database, will use AI");
-        loadQuestion();
+        console.log("No questions in database");
+        setQuestionLoading(false);
+        toast({
+          title: "कोई प्रश्न उपलब्ध नहीं",
+          description: "इस कक्षा के लिए अभी तक प्रश्न generate नहीं हुए हैं। Admin Panel से प्रश्न generate करें।",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error in fetchDatabaseQuestions:", error);
@@ -173,9 +198,12 @@ const Quiz = () => {
     const availableQuestions = questions.filter(q => !usedIds.includes(q.id));
     
     if (availableQuestions.length === 0) {
-      // All database questions used, fallback to AI
-      console.log("All database questions used, switching to AI");
-      loadQuestion();
+      console.log("All database questions used");
+      setQuestionLoading(false);
+      toast({
+        title: "सभी प्रश्न हो गए!",
+        description: "इस कक्षा के सभी प्रश्न पूरे हो गए हैं।",
+      });
       return;
     }
 
@@ -227,13 +255,8 @@ const Quiz = () => {
   // Load next question - prefer database, fallback to AI
   const loadNextQuestion = () => {
     if (dbQuestions.length > 0) {
-      const availableQuestions = dbQuestions.filter(q => !usedQuestionIds.includes(q.id));
-      if (availableQuestions.length > 0) {
-        loadQuestionFromDB(dbQuestions as any, usedQuestionIds);
-        return;
-      }
+      loadQuestionFromDB(dbQuestions as any, usedQuestionIds);
     }
-    loadQuestion();
   };
 
   const handleSubmit = async () => {
