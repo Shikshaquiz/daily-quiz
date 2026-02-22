@@ -198,9 +198,42 @@ const AdminPanel = () => {
 
   useEffect(() => {
     if (isAuthed && isAdmin) {
-      fetchAllData();
+      seedClassesAndFetch();
     }
   }, [isAuthed, isAdmin]);
+
+  // Auto-seed classes 1-10 for both boards if they don't exist
+  const seedClassesAndFetch = async () => {
+    try {
+      const { data: existingClasses } = await supabase
+        .from("admin_classes" as any)
+        .select("class_number, board_type");
+      
+      const existing = new Set(
+        ((existingClasses as any[]) || []).map((c: any) => `${c.class_number}-${c.board_type}`)
+      );
+
+      const toInsert: { class_number: number; board_type: string }[] = [];
+      for (let i = 1; i <= 10; i++) {
+        for (const board of ["ncert", "bihar"]) {
+          if (!existing.has(`${i}-${board}`)) {
+            toInsert.push({ class_number: i, board_type: board });
+          }
+        }
+      }
+
+      if (toInsert.length > 0) {
+        await supabase.from("admin_classes" as any).insert(toInsert);
+      }
+    } catch (err) {
+      console.error("Error seeding classes:", err);
+    }
+    await fetchAllData();
+  };
+
+  // State for expanded class in classes tab
+  const [expandedClassId, setExpandedClassId] = useState<string | null>(null);
+  const [quickSubjectClassId, setQuickSubjectClassId] = useState<string | null>(null);
 
   const fetchAllData = async () => {
     await Promise.all([
@@ -1025,72 +1058,117 @@ const AdminPanel = () => {
           {/* Classes Tab */}
           <TabsContent value="classes">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>📚 कक्षाएं प्रबंधन</CardTitle>
-                <Dialog open={classDialogOpen} onOpenChange={setClassDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button onClick={() => resetClassForm()}>
-                      <Plus className="h-4 w-4 mr-2" /> नई कक्षा
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>{editingClassId ? "कक्षा संपादित करें" : "नई कक्षा जोड़ें"}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 pt-4">
-                      <div>
-                        <Label>कक्षा नंबर</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="12"
-                          value={classNumber}
-                          onChange={(e) => setClassNumber(e.target.value)}
-                          placeholder="1-12"
-                        />
-                      </div>
-                      <div>
-                        <Label>बोर्ड</Label>
-                        <Select value={boardType} onValueChange={setBoardType}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ncert">NCERT</SelectItem>
-                            <SelectItem value="bihar">Bihar Board</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button onClick={handleSaveClass} className="w-full">
-                        {editingClassId ? "अपडेट करें" : "जोड़ें"}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+              <CardHeader>
+                <CardTitle>📚 कक्षाएं (Quiz से जुड़ी)</CardTitle>
+                <p className="text-sm text-muted-foreground">Quiz में दिखने वाली सभी कक्षाएं यहां हैं। विषय जोड़ें और PDF अपलोड करें।</p>
               </CardHeader>
               <CardContent>
-                {classes.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">कोई कक्षा नहीं मिली</p>
-                ) : (
-                  <div className="grid gap-3">
-                    {classes.map((cls) => (
-                      <div key={cls.id} className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                        <div>
-                          <p className="font-medium">कक्षा {cls.class_number}</p>
-                          <p className="text-sm text-muted-foreground">{cls.board_type.toUpperCase()}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => handleEditClass(cls)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteClass(cls.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
+                {["ncert", "bihar"].map((board) => {
+                  const boardClasses = classes
+                    .filter(c => c.board_type === board)
+                    .sort((a, b) => a.class_number - b.class_number);
+                  
+                  return (
+                    <div key={board} className="mb-6">
+                      <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                        {board === "ncert" ? "📘" : "📗"} {board === "ncert" ? "NCERT" : "Bihar Board"}
+                      </h3>
+                      <div className="grid gap-3">
+                        {boardClasses.map((cls) => {
+                          const classSubjects = subjects.filter(s => s.class_id === cls.id);
+                          const isExpanded = expandedClassId === cls.id;
+                          const totalQuestions = classSubjects.reduce((sum, sub) => {
+                            const subChapters = chapters.filter(c => c.subject_id === sub.id);
+                            return sum + subChapters.reduce((s, ch) => s + questions.filter(q => q.chapter_id === ch.id).length, 0);
+                          }, 0);
+                          
+                          return (
+                            <div key={cls.id} className="border rounded-lg overflow-hidden">
+                              <div 
+                                className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                                onClick={() => setExpandedClassId(isExpanded ? null : cls.id)}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                    <span className="font-bold text-primary">{cls.class_number}</span>
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">कक्षा {cls.class_number}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {classSubjects.length} विषय • {totalQuestions} प्रश्न
+                                      {classSubjects.filter(s => s.pdf_url).length > 0 && (
+                                        <span className="ml-1 text-green-600">• 📄 {classSubjects.filter(s => s.pdf_url).length} PDF</span>
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setQuickSubjectClassId(cls.id);
+                                      setSelectedClassId(cls.id);
+                                      setSubjectDialogOpen(true);
+                                    }}
+                                  >
+                                    <Plus className="h-3 w-3 mr-1" /> विषय जोड़ें
+                                  </Button>
+                                  <span className="text-muted-foreground">{isExpanded ? "▲" : "▼"}</span>
+                                </div>
+                              </div>
+                              
+                              {isExpanded && (
+                                <div className="border-t p-4 bg-muted/30">
+                                  {classSubjects.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground text-center py-4">
+                                      कोई विषय नहीं। "विषय जोड़ें" बटन से विषय और PDF जोड़ें।
+                                    </p>
+                                  ) : (
+                                    <div className="grid gap-2">
+                                      {classSubjects.map((subject) => {
+                                        const subChapters = chapters.filter(c => c.subject_id === subject.id);
+                                        const subQuestionCount = subChapters.reduce((s, ch) => s + questions.filter(q => q.chapter_id === ch.id).length, 0);
+                                        return (
+                                          <div key={subject.id} className="flex items-center justify-between p-3 bg-background rounded-lg">
+                                            <div>
+                                              <p className="font-medium flex items-center gap-2">
+                                                {subject.emoji} {subject.name}
+                                                {subject.pdf_url ? (
+                                                  <a href={subject.pdf_url} target="_blank" rel="noopener noreferrer" className="text-green-600 text-xs flex items-center gap-1">
+                                                    <FileText className="h-3 w-3" /> PDF ✓
+                                                  </a>
+                                                ) : (
+                                                  <span className="text-xs text-amber-500">⚠️ PDF नहीं</span>
+                                                )}
+                                              </p>
+                                              <p className="text-xs text-muted-foreground">
+                                                {subject.name_hindi} • {subChapters.length} अध्याय • {subQuestionCount} प्रश्न
+                                              </p>
+                                            </div>
+                                            <div className="flex gap-1">
+                                              <Button variant="ghost" size="icon" onClick={() => handleEditSubject(subject)}>
+                                                <Edit className="h-4 w-4" />
+                                              </Button>
+                                              <Button variant="ghost" size="icon" onClick={() => handleDeleteSubject(subject.id)}>
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
           </TabsContent>
