@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Edit, Trash2, BookOpen, GraduationCap, FileText, HelpCircle, Loader2, Upload, Sparkles, Eye } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, BookOpen, GraduationCap, FileText, HelpCircle, Loader2, Upload, Sparkles, Eye, LayoutDashboard } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 interface AdminClass {
@@ -62,7 +62,7 @@ const AdminPanel = () => {
   const [authChecking, setAuthChecking] = useState(true);
   const [isAuthed, setIsAuthed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [activeTab, setActiveTab] = useState("classes");
+  const [activeTab, setActiveTab] = useState("dashboard");
   
   // Data states
   const [classes, setClasses] = useState<AdminClass[]>([]);
@@ -933,7 +933,11 @@ const AdminPanel = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              <span className="hidden sm:inline">डैशबोर्ड</span>
+            </TabsTrigger>
             <TabsTrigger value="classes" className="flex items-center gap-2">
               <GraduationCap className="h-4 w-4" />
               <span className="hidden sm:inline">कक्षाएं</span>
@@ -951,6 +955,72 @@ const AdminPanel = () => {
               <span className="hidden sm:inline">प्रश्न</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* Dashboard Tab */}
+          <TabsContent value="dashboard">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <GraduationCap className="h-8 w-8 mx-auto mb-2 text-primary" />
+                  <p className="text-3xl font-bold text-foreground">{classes.length}</p>
+                  <p className="text-sm text-muted-foreground">कुल कक्षाएं</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <BookOpen className="h-8 w-8 mx-auto mb-2 text-primary" />
+                  <p className="text-3xl font-bold text-foreground">{subjects.length}</p>
+                  <p className="text-sm text-muted-foreground">कुल विषय</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <FileText className="h-8 w-8 mx-auto mb-2 text-primary" />
+                  <p className="text-3xl font-bold text-foreground">{chapters.length}</p>
+                  <p className="text-sm text-muted-foreground">कुल अध्याय</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <HelpCircle className="h-8 w-8 mx-auto mb-2 text-primary" />
+                  <p className="text-3xl font-bold text-foreground">{questions.length}</p>
+                  <p className="text-sm text-muted-foreground">कुल प्रश्न</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>📊 विषय-वार प्रश्न</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {subjects.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">कोई विषय नहीं</p>
+                ) : (
+                  <div className="space-y-3">
+                    {subjects.map((subject) => {
+                      const subjectChapters = chapters.filter(c => c.subject_id === subject.id);
+                      const subjectQuestionCount = subjectChapters.reduce((sum, ch) => 
+                        sum + questions.filter(q => q.chapter_id === ch.id).length, 0
+                      );
+                      const cls = classes.find(c => c.id === subject.class_id);
+                      return (
+                        <div key={subject.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                          <div>
+                            <p className="font-medium">{subject.emoji} {subject.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {cls ? `कक्षा ${cls.class_number}` : ''} • {subjectChapters.length} अध्याय
+                            </p>
+                          </div>
+                          <span className="text-lg font-bold text-primary">{subjectQuestionCount}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Classes Tab */}
           <TabsContent value="classes">
