@@ -79,20 +79,16 @@ const Quiz = () => {
     }
   };
 
-  // Auto-generate questions for a subject via AI and save to DB
-  const autoGenerateAndSaveQuestions = async (
+  // Auto-generate questions for a subject via batch AI and save to DB
+  const autoGenerateForSubject = async (
     subjectId: string,
     subjectName: string,
     classNum: number,
-    board: string
-  ) => {
+    board: string,
+    numQuestions: number
+  ): Promise<any[]> => {
     try {
-      toast({
-        title: "प्रश्न बनाए जा रहे हैं...",
-        description: `${subjectName} के लिए AI से प्रश्न generate हो रहे हैं। कृपया प्रतीक्षा करें।`,
-      });
-
-      // First, create a default chapter if none exists
+      // Create a default chapter if none exists
       const { data: existingChapters } = await supabase
         .from("admin_chapters")
         .select("id")
@@ -121,56 +117,55 @@ const Quiz = () => {
         chapterId = existingChapters[0].id;
       }
 
-      // Generate 10 questions using AI
-      const generatedQuestions: any[] = [];
-      for (let i = 0; i < 10; i++) {
+      // Use batch generation endpoint (generates up to 50 at a time)
+      const batchSize = 50;
+      const batches = Math.ceil(numQuestions / batchSize);
+      const allGenerated: any[] = [];
+
+      for (let b = 0; b < batches; b++) {
+        const count = Math.min(batchSize, numQuestions - (b * batchSize));
         try {
-          const { data, error } = await supabase.functions.invoke('generate-quiz', {
+          const { data, error } = await supabase.functions.invoke('generate-questions-from-pdf', {
             body: {
-              classNumber: classNum,
-              boardType: board,
+              chapterName: `${subjectName} - सामान्य`,
+              subjectName: subjectName,
+              className: `Class ${classNum}`,
+              numQuestions: count,
             }
           });
 
-          if (error || !data) continue;
+          if (error || !data?.questions) {
+            console.error(`Batch ${b + 1} error:`, error);
+            continue;
+          }
 
-          generatedQuestions.push({
+          const questionsToSave = data.questions.map((q: any) => ({
             chapter_id: chapterId,
-            question: data.question,
-            options: data.options,
-            correct_answer: data.correctAnswer,
-            difficulty: "medium",
-          });
+            question: q.question,
+            options: q.options,
+            correct_answer: q.correct_answer,
+            difficulty: q.difficulty || "medium",
+          }));
+
+          const { data: saved, error: saveError } = await supabase
+            .from("chapter_questions")
+            .insert(questionsToSave)
+            .select("*");
+
+          if (!saveError && saved) {
+            allGenerated.push(...saved.map((q: any) => ({
+              ...q,
+              subjectName: subjectName,
+            })));
+          }
         } catch (e) {
-          console.error(`Error generating question ${i + 1}:`, e);
+          console.error(`Batch ${b + 1} exception:`, e);
         }
       }
 
-      if (generatedQuestions.length > 0) {
-        const { data: savedQuestions, error: saveError } = await supabase
-          .from("chapter_questions")
-          .insert(generatedQuestions)
-          .select("*");
-
-        if (saveError) {
-          console.error("Error saving generated questions:", saveError);
-          return [];
-        }
-
-        toast({
-          title: "प्रश्न तैयार!",
-          description: `${generatedQuestions.length} प्रश्न सफलतापूर्वक बनाए गए।`,
-        });
-
-        return (savedQuestions || []).map((q: any) => ({
-          ...q,
-          subjectName: subjectName,
-        }));
-      }
-
-      return [];
+      return allGenerated;
     } catch (err) {
-      console.error("Error in autoGenerateAndSaveQuestions:", err);
+      console.error("Error in autoGenerateForSubject:", err);
       return [];
     }
   };
@@ -178,7 +173,6 @@ const Quiz = () => {
   // Fetch questions from database based on class and board
   const fetchDatabaseQuestions = async () => {
     try {
-      // First, find the class ID for the given class number and board type
       const { data: classData, error: classError } = await supabase
         .from("admin_classes")
         .select("id")
@@ -217,7 +211,7 @@ const Quiz = () => {
 
       // Get all chapters for these subjects
       const subjectIds = subjects.map(s => s.id);
-      const { data: chapters, error: chaptersError } = await supabase
+      const { data: chapters } = await supabase
         .from("admin_chapters")
         .select("id, subject_id")
         .in("subject_id", subjectIds);
@@ -232,7 +226,6 @@ const Quiz = () => {
           .in("chapter_id", chapterIds);
 
         if (!questionsError && questions) {
-          // Create a map of chapter_id to subject name
           const chapterToSubject: Record<string, string> = {};
           chapters.forEach(ch => {
             const subject = subjects.find(s => s.id === ch.subject_id);
@@ -248,22 +241,37 @@ const Quiz = () => {
         }
       }
 
-      // If no questions exist but subjects with PDF exist, auto-generate
+      // If no questions exist but subjects with PDF exist, auto-generate for ALL subjects
       if (allQuestions.length === 0) {
-        console.log("No questions found, auto-generating from PDF subjects...");
+        console.log("No questions found, auto-generating for ALL subjects...");
         const classNum = parseInt(classNumber || "1");
-        
-        // Generate for first subject with PDF
-        const firstSubject = subjects[0];
-        const generated = await autoGenerateAndSaveQuestions(
-          firstSubject.id,
-          firstSubject.name,
-          classNum,
-          currentBoard
+        const questionsPerSubject = Math.ceil(500 / subjects.length);
+
+        toast({
+          title: "प्रश्न बनाए जा रहे हैं...",
+          description: `${subjects.length} विषयों के लिए ~${500} प्रश्न generate हो रहे हैं। कृपया प्रतीक्षा करें।`,
+        });
+
+        // Generate for ALL subjects in parallel
+        const results = await Promise.all(
+          subjects.map(subject =>
+            autoGenerateForSubject(
+              subject.id,
+              subject.name,
+              classNum,
+              currentBoard,
+              questionsPerSubject
+            )
+          )
         );
 
-        if (generated.length > 0) {
-          allQuestions = generated;
+        allQuestions = results.flat();
+
+        if (allQuestions.length > 0) {
+          toast({
+            title: "प्रश्न तैयार! 🎉",
+            description: `कुल ${allQuestions.length} प्रश्न ${subjects.length} विषयों के लिए बनाए गए।`,
+          });
         } else {
           setQuestionLoading(false);
           toast({
