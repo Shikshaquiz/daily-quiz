@@ -1022,37 +1022,71 @@ const AdminPanel = () => {
               </Card>
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>📊 विषय-वार प्रश्न</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {subjects.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">कोई विषय नहीं</p>
-                ) : (
-                  <div className="space-y-3">
-                    {subjects.map((subject) => {
-                      const subjectChapters = chapters.filter(c => c.subject_id === subject.id);
-                      const subjectQuestionCount = subjectChapters.reduce((sum, ch) => 
-                        sum + questions.filter(q => q.chapter_id === ch.id).length, 0
-                      );
-                      const cls = classes.find(c => c.id === subject.class_id);
-                      return (
-                        <div key={subject.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                          <div>
-                            <p className="font-medium">{subject.emoji} {subject.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {cls ? `कक्षा ${cls.class_number}` : ''} • {subjectChapters.length} अध्याय
-                            </p>
-                          </div>
-                          <span className="text-lg font-bold text-primary">{subjectQuestionCount}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {["ncert", "bihar"].map((board) => {
+              const boardClasses = classes.filter(c => c.board_type === board);
+              const boardSubjects = subjects.filter(s => boardClasses.some(c => c.id === s.class_id));
+              const boardChapters = chapters.filter(c => boardSubjects.some(s => s.id === c.subject_id));
+              const boardQuestions = questions.filter(q => boardChapters.some(c => c.id === q.chapter_id));
+              const boardPdfs = boardSubjects.filter(s => s.pdf_url).length;
+
+              return (
+                <Card key={board} className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      {board === "ncert" ? "📘" : "📗"} {board === "ncert" ? "NCERT" : "Bihar Board"}
+                    </CardTitle>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+                      <div className="p-3 bg-muted rounded-lg text-center">
+                        <p className="text-2xl font-bold text-foreground">{boardClasses.length}</p>
+                        <p className="text-xs text-muted-foreground">कक्षाएं</p>
+                      </div>
+                      <div className="p-3 bg-muted rounded-lg text-center">
+                        <p className="text-2xl font-bold text-foreground">{boardSubjects.length}</p>
+                        <p className="text-xs text-muted-foreground">विषय</p>
+                      </div>
+                      <div className="p-3 bg-muted rounded-lg text-center">
+                        <p className="text-2xl font-bold text-foreground">{boardPdfs}</p>
+                        <p className="text-xs text-muted-foreground">PDF अपलोड</p>
+                      </div>
+                      <div className="p-3 bg-muted rounded-lg text-center">
+                        <p className="text-2xl font-bold text-foreground">{boardQuestions.length}</p>
+                        <p className="text-xs text-muted-foreground">प्रश्न</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {boardSubjects.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-4">कोई विषय नहीं</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {boardSubjects.map((subject) => {
+                          const subjectChapters = chapters.filter(c => c.subject_id === subject.id);
+                          const subjectQuestionCount = subjectChapters.reduce((sum, ch) => 
+                            sum + questions.filter(q => q.chapter_id === ch.id).length, 0
+                          );
+                          const cls = classes.find(c => c.id === subject.class_id);
+                          return (
+                            <div key={subject.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <span>{subject.emoji}</span>
+                                <div>
+                                  <p className="font-medium">{subject.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {cls ? `कक्षा ${cls.class_number}` : ''} • {subjectChapters.length} अध्याय
+                                    {subject.pdf_url && <span className="ml-1 text-green-600">• 📄 PDF</span>}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className="text-lg font-bold text-primary">{subjectQuestionCount}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </TabsContent>
 
           {/* Classes Tab */}
