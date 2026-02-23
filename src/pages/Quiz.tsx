@@ -79,6 +79,102 @@ const Quiz = () => {
     }
   };
 
+  // Auto-generate questions for a subject via AI and save to DB
+  const autoGenerateAndSaveQuestions = async (
+    subjectId: string,
+    subjectName: string,
+    classNum: number,
+    board: string
+  ) => {
+    try {
+      toast({
+        title: "प्रश्न बनाए जा रहे हैं...",
+        description: `${subjectName} के लिए AI से प्रश्न generate हो रहे हैं। कृपया प्रतीक्षा करें।`,
+      });
+
+      // First, create a default chapter if none exists
+      const { data: existingChapters } = await supabase
+        .from("admin_chapters")
+        .select("id")
+        .eq("subject_id", subjectId);
+
+      let chapterId: string;
+
+      if (!existingChapters || existingChapters.length === 0) {
+        const { data: newChapter, error: chapterError } = await supabase
+          .from("admin_chapters")
+          .insert({
+            subject_id: subjectId,
+            chapter_number: 1,
+            name: `${subjectName} - General`,
+            name_hindi: `${subjectName} - सामान्य`,
+          })
+          .select("id")
+          .single();
+
+        if (chapterError || !newChapter) {
+          console.error("Error creating default chapter:", chapterError);
+          return [];
+        }
+        chapterId = newChapter.id;
+      } else {
+        chapterId = existingChapters[0].id;
+      }
+
+      // Generate 10 questions using AI
+      const generatedQuestions: any[] = [];
+      for (let i = 0; i < 10; i++) {
+        try {
+          const { data, error } = await supabase.functions.invoke('generate-quiz', {
+            body: {
+              classNumber: classNum,
+              boardType: board,
+            }
+          });
+
+          if (error || !data) continue;
+
+          generatedQuestions.push({
+            chapter_id: chapterId,
+            question: data.question,
+            options: data.options,
+            correct_answer: data.correctAnswer,
+            difficulty: "medium",
+          });
+        } catch (e) {
+          console.error(`Error generating question ${i + 1}:`, e);
+        }
+      }
+
+      if (generatedQuestions.length > 0) {
+        const { data: savedQuestions, error: saveError } = await supabase
+          .from("chapter_questions")
+          .insert(generatedQuestions)
+          .select("*");
+
+        if (saveError) {
+          console.error("Error saving generated questions:", saveError);
+          return [];
+        }
+
+        toast({
+          title: "प्रश्न तैयार!",
+          description: `${generatedQuestions.length} प्रश्न सफलतापूर्वक बनाए गए।`,
+        });
+
+        return (savedQuestions || []).map((q: any) => ({
+          ...q,
+          subjectName: subjectName,
+        }));
+      }
+
+      return [];
+    } catch (err) {
+      console.error("Error in autoGenerateAndSaveQuestions:", err);
+      return [];
+    }
+  };
+
   // Fetch questions from database based on class and board
   const fetchDatabaseQuestions = async () => {
     try {
@@ -126,63 +222,63 @@ const Quiz = () => {
         .select("id, subject_id")
         .in("subject_id", subjectIds);
 
-      if (chaptersError || !chapters || chapters.length === 0) {
-        console.log("No chapters found");
-        setQuestionLoading(false);
-        toast({
-          title: "कोई प्रश्न उपलब्ध नहीं",
-          description: "इस विषय के लिए कोई अध्याय नहीं मिला।",
-          variant: "destructive",
-        });
-        return;
+      // Get all questions for existing chapters
+      let allQuestions: any[] = [];
+      if (chapters && chapters.length > 0) {
+        const chapterIds = chapters.map(c => c.id);
+        const { data: questions, error: questionsError } = await supabase
+          .from("chapter_questions")
+          .select("*")
+          .in("chapter_id", chapterIds);
+
+        if (!questionsError && questions) {
+          // Create a map of chapter_id to subject name
+          const chapterToSubject: Record<string, string> = {};
+          chapters.forEach(ch => {
+            const subject = subjects.find(s => s.id === ch.subject_id);
+            if (subject) {
+              chapterToSubject[ch.id] = subject.name;
+            }
+          });
+
+          allQuestions = questions.map(q => ({
+            ...q,
+            subjectName: chapterToSubject[q.chapter_id] || "General"
+          }));
+        }
       }
 
-      // Get all questions for these chapters
-      const chapterIds = chapters.map(c => c.id);
-      const { data: questions, error: questionsError } = await supabase
-        .from("chapter_questions")
-        .select("*")
-        .in("chapter_id", chapterIds);
-
-      if (questionsError) {
-        console.error("Error fetching questions:", questionsError);
-        setQuestionLoading(false);
-        toast({
-          title: "त्रुटि",
-          description: "प्रश्न लोड करने में समस्या आई।",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (questions && questions.length > 0) {
-        console.log(`Found ${questions.length} questions in database`);
+      // If no questions exist but subjects with PDF exist, auto-generate
+      if (allQuestions.length === 0) {
+        console.log("No questions found, auto-generating from PDF subjects...");
+        const classNum = parseInt(classNumber || "1");
         
-        // Create a map of chapter_id to subject name
-        const chapterToSubject: Record<string, string> = {};
-        chapters.forEach(ch => {
-          const subject = subjects.find(s => s.id === ch.subject_id);
-          if (subject) {
-            chapterToSubject[ch.id] = subject.name;
-          }
-        });
+        // Generate for first subject with PDF
+        const firstSubject = subjects[0];
+        const generated = await autoGenerateAndSaveQuestions(
+          firstSubject.id,
+          firstSubject.name,
+          classNum,
+          currentBoard
+        );
 
-        // Transform and store questions
-        const transformedQuestions = questions.map(q => ({
-          ...q,
-          subjectName: chapterToSubject[q.chapter_id] || "General"
-        }));
+        if (generated.length > 0) {
+          allQuestions = generated;
+        } else {
+          setQuestionLoading(false);
+          toast({
+            title: "प्रश्न बनाने में समस्या",
+            description: "AI से प्रश्न generate नहीं हो सके। कृपया बाद में प्रयास करें।",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
 
-        setDbQuestions(transformedQuestions as any);
-        loadQuestionFromDB(transformedQuestions as any, []);
-      } else {
-        console.log("No questions in database");
-        setQuestionLoading(false);
-        toast({
-          title: "कोई प्रश्न उपलब्ध नहीं",
-          description: "इस कक्षा के लिए अभी तक प्रश्न generate नहीं हुए हैं। Admin Panel से प्रश्न generate करें।",
-          variant: "destructive",
-        });
+      if (allQuestions.length > 0) {
+        console.log(`Total ${allQuestions.length} questions available`);
+        setDbQuestions(allQuestions as any);
+        loadQuestionFromDB(allQuestions as any, []);
       }
     } catch (error) {
       console.error("Error in fetchDatabaseQuestions:", error);
