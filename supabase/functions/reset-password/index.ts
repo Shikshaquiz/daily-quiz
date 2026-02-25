@@ -3,11 +3,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -41,17 +40,18 @@ serve(async (req) => {
       }
     })
 
-    // Format phone number for lookup
-    const formattedPhone = phone.startsWith('+91') ? phone : `+91${phone}`
+    // Users are stored with email: phone@phone.local
+    const cleanPhone = phone.replace(/\D/g, '')
+    const authEmail = `${cleanPhone}@phone.local`
 
-    console.log('Looking up user with phone:', formattedPhone)
+    console.log('Looking up user with email:', authEmail)
 
-    // Find user by phone
+    // Find user by email
     const { data: existingUsers } = await supabase.auth.admin.listUsers()
-    const existingUser = existingUsers?.users?.find(u => u.phone === formattedPhone)
+    const existingUser = existingUsers?.users?.find(u => u.email === authEmail)
 
     if (!existingUser) {
-      console.error('User not found with phone:', formattedPhone)
+      console.error('User not found with email:', authEmail)
       return new Response(
         JSON.stringify({ error: 'User not found' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
