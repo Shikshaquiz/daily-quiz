@@ -23,15 +23,23 @@ const Auth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Clear any stale/broken session first to prevent refresh token loops
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.log('Stale session detected, signing out:', error.message);
+        supabase.auth.signOut().catch(() => {});
+        return;
+      }
       if (session) {
         navigate("/classes");
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate("/classes");
+      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+        if (session) {
+          navigate("/classes");
+        }
       }
     });
 
