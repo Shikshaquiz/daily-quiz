@@ -10,6 +10,9 @@ import { GraduationCap, Loader2, User, Mail, Lock, Phone } from "lucide-react";
 
 const Auth = () => {
   const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   
   // Form fields
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -103,6 +106,50 @@ const Auth = () => {
       toast({
         title: "त्रुटि",
         description: "गलत फोन नंबर या पासवर्ड। कृपया पुनः प्रयास करें।",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setLoading(true);
+    try {
+      const cleanPhone = phoneNumber.replace(/\D/g, "");
+      if (cleanPhone.length !== 10) {
+        toast({ title: "त्रुटि", description: "कृपया 10 अंकों का मान्य फोन नंबर दर्ज करें", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+      if (newPassword.length < 6) {
+        toast({ title: "त्रुटि", description: "पासवर्ड कम से कम 6 अक्षरों का होना चाहिए", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+      if (newPassword !== confirmNewPassword) {
+        toast({ title: "त्रुटि", description: "पासवर्ड मेल नहीं खाते", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('reset-password', {
+        body: { phone: cleanPhone, newPassword }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({ title: "सफल", description: "पासवर्ड बदल दिया गया। अब लॉगिन करें।" });
+      setShowForgotPassword(false);
+      setNewPassword("");
+      setConfirmNewPassword("");
+      setPassword("");
+    } catch (error: any) {
+      console.error("Error resetting password:", error);
+      toast({
+        title: "त्रुटि",
+        description: error.message === "User not found" ? "यह फोन नंबर पंजीकृत नहीं है" : "पासवर्ड बदलने में समस्या आई",
         variant: "destructive",
       });
     } finally {
@@ -255,6 +302,13 @@ const Auth = () => {
                     "लॉगिन करें"
                   )}
                 </Button>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="w-full text-sm text-primary hover:underline mt-2"
+                >
+                  पासवर्ड भूल गए?
+                </button>
               </div>
             </TabsContent>
 
@@ -341,6 +395,67 @@ const Auth = () => {
             </TabsContent>
           </Tabs>
         </Card>
+
+        {/* Forgot Password Modal */}
+        {showForgotPassword && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="p-6 w-full max-w-md shadow-lg">
+              <h2 className="text-lg font-bold text-foreground mb-4">पासवर्ड रीसेट करें</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">मोबाइल नंबर</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="tel"
+                      placeholder="9876543210"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      maxLength={10}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">नया पासवर्ड</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="password"
+                      placeholder="******"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">नया पासवर्ड पुष्टि करें</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="password"
+                      placeholder="******"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <Button onClick={handleForgotPassword} className="w-full" disabled={loading}>
+                  {loading ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />पासवर्ड बदला जा रहा है...</>
+                  ) : (
+                    "पासवर्ड बदलें"
+                  )}
+                </Button>
+                <Button variant="outline" onClick={() => setShowForgotPassword(false)} className="w-full">
+                  वापस जाएं
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );
