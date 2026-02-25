@@ -23,17 +23,35 @@ const Auth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Clear any stale/broken session first to prevent refresh token loops
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.log('Stale session detected, signing out:', error.message);
-        supabase.auth.signOut().catch(() => {});
-        return;
+    // Aggressively clear any stale/broken session to prevent refresh token loops
+    const initAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.log('Stale session detected, clearing localStorage:', error.message);
+          // Force clear all supabase auth keys from localStorage
+          Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('sb-')) {
+              localStorage.removeItem(key);
+            }
+          });
+          await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+          return;
+        }
+        if (session) {
+          navigate("/classes");
+        }
+      } catch (err) {
+        console.log('Auth init error, clearing session:', err);
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('sb-')) {
+            localStorage.removeItem(key);
+          }
+        });
       }
-      if (session) {
-        navigate("/classes");
-      }
-    });
+    };
+
+    initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
