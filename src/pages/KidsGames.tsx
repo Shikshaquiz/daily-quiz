@@ -235,7 +235,7 @@ const KidsGames = () => {
 
   // Timer effect for memory game
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (memoryTimerRunning && !memoryGameComplete) {
       interval = setInterval(() => {
         setMemoryTimer(t => t + 1);
